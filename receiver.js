@@ -38,7 +38,7 @@ function run(file, args) {
 }
 
 async function listApps() {
-  const output = await run('/system/bin/pm', ['list', 'packages', '-3']);
+  const output = await run('/system/bin/pm', ['list', 'packages']);
   return [...new Set(output.split(/\r?\n/)
     .map(line => line.trim().replace(/^package:/, ''))
     .filter(pkg => /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$/.test(pkg)))].sort();
@@ -146,7 +146,13 @@ const server = net.createServer(socket => {
           send(socket, protocol === 'legacy' ? { ok: false, error: message } : { ok: false, message });
           return;
         }
-        await run('/system/bin/monkey', ['-p', pkg, '1']);
+        // Cari package dari output pm list packages (setara filter grep -i), lalu buka melalui Android Activity Manager.
+        const installedOutput = await run('/system/bin/pm', ['list', 'packages']);
+        const installed = installedOutput.split(/\\r?\\n/)
+          .map(line => line.trim().replace(/^package:/, ''));
+        const matched = installed.find(name => name.toLowerCase() === pkg.toLowerCase());
+        if (!matched) throw new Error('Package tidak ditemukan oleh pm list packages.');
+        await run('/system/bin/am', ['start', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', matched]);
         const message = 'Perintah membuka aplikasi dikirim: ' + pkg;
         send(socket, protocol === 'legacy' ? { ok: true, message } : { ok: true, message });
         console.log(GREEN + '[OPEN] ' + pkg + RESET);
