@@ -18,7 +18,7 @@ function request(socket, payload) {
       const i = buffer.indexOf('\n');
       if (i < 0) return;
       socket.off('data', onData);
-      try { resolve(JSON.parse(buffer.slice(0, i)); }
+      try { resolve(JSON.parse(buffer.slice(0, i))); }
       catch (e) { reject(new Error('Balasan receiver tidak valid.')); }
     };
     socket.on('data', onData);
