@@ -147,12 +147,12 @@ const server = net.createServer(socket => {
         if (!matched) {
           throw new Error('Package tidak ditemukan pada daftar aplikasi Receiver: ' + pkg);
         }
-        const resolved = await run('/system/bin/cmd', ['package', 'resolve-activity', '--brief', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', matched]);
+        const resolved = await run('/system/bin/cmd', ['package', 'resolve-activity', '--brief', '--user', '0', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', matched]);
         const component = resolved.split(/\r?\n/).map(line => line.trim()).filter(line => line.includes('/')).pop();
         if (!component) {
           throw new Error('Aktivitas launcher tidak ditemukan untuk package: ' + matched);
         }
-        await run('/system/bin/cmd', ['activity', 'start-activity', '-n', component]);
+        await run('/system/bin/cmd', ['activity', 'start-activity', '--user', '0', '-n', component]);
         const message = 'Perintah membuka aplikasi dikirim: ' + pkg;
         send(socket, protocol === 'legacy' ? { ok: true, message } : { ok: true, message });
         console.log(GREEN + '[OPEN] ' + pkg + RESET);
