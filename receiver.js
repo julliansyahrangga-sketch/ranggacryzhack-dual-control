@@ -12,26 +12,20 @@ const YELLOW = '\x1b[33m';
 const RED = '\x1b[31m';
 const RESET = '\x1b[0m';
 
-const terminal = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
+const terminal = readline.createInterface({ input: process.stdin, output: process.stdout });
 const ask = q => new Promise(resolve => terminal.question(q, resolve));
 const PIN = String(crypto.randomInt(100000, 1000000));
-const TOKEN = crypto.randomBytes(24).toString('hex');
 
 function getIPv4() {
-  const result = [];
+  const ips = [];
   for (const entries of Object.values(os.networkInterfaces())) {
     for (const item of entries || []) {
-      if ((item.family === 'IPv4' || item.family === 4) &&
-          !item.internal && item.address) {
-        result.push(item.address);
+      if ((item.family === 'IPv4' || item.family === 4) && !item.internal && item.address) {
+        ips.push(item.address);
       }
     }
   }
-  return [...new Set(result)];
+  return [...new Set(ips)];
 }
 
 function run(file, args) {
@@ -55,11 +49,10 @@ function send(socket, data) {
 }
 
 let activeSocket = null;
-let activeToken = null;
 
 const server = net.createServer(socket => {
   if (activeSocket && !activeSocket.destroyed) {
-    send(socket, { type: 'error', message: 'Receiver sedang digunakan Controller lain.' });
+    send(socket, { type: 'error', ok: false, message: 'Receiver sedang digunakan Controller lain.', error: 'Receiver sedang digunakan Controller lain.' });
     socket.end();
     return;
   }
@@ -67,76 +60,119 @@ const server = net.createServer(socket => {
   socket.setEncoding('utf8');
   let buffer = '';
   let paired = false;
+  let token = '';
+  let protocol = '';
   let chain = Promise.resolve();
 
   console.log(YELLOW + '\n[CONNECTION] Ada Controller yang menghubungi.' + RESET);
 
   async function handle(data) {
+    const isLegacy = data && typeof data.action === 'string';
+    const isV2 = data && typeof data.type === 'string';
+
     if (!paired) {
-      if (data.type !== 'pair' || String(data.pin || '') !== PIN) {
-        send(socket, { type: 'error', message: 'PIN salah atau permintaan tidak valid.' });
+      const validPair = (isV2 && data.type === 'pair' && String(data.pin || '') === PIN) ||
+                        (isLegacy && data.action === 'pair' && String(data.pin || '') === PIN);
+
+      if (!validPair) {
+        send(socket, isLegacy
+          ? { ok: false, error: 'PIN salah atau permintaan pairing tidak valid.' }
+          : { type: 'error', message: 'PIN salah atau permintaan pairing tidak valid.' });
         socket.end();
         return;
       }
 
+      protocol = isLegacy ? 'legacy' : 'v2';
       console.log(YELLOW + '\nPERMINTAAN PAIRING' + RESET);
-      console.log('Controller meminta izin mengakses daftar aplikasi dan membuka aplikasi.');
+      console.log('Controller meminta izin menampilkan daftar aplikasi dan membuka aplikasi.');
       const answer = (await ask('Izinkan koneksi? (y/n): ')).trim().toLowerCase();
 
       if (answer !== 'y' && answer !== 'ya') {
-        send(socket, { type: 'error', message: 'Koneksi ditolak oleh Receiver.' });
+        send(socket, protocol === 'legacy'
+          ? { ok: false, error: 'Permintaan pairing ditolak di Receiver.' }
+          : { type: 'error', message: 'Permintaan pairing ditolak di Receiver.' });
         socket.end();
         return;
       }
 
       paired = true;
       activeSocket = socket;
-      activeToken = TOKEN;
-      send(socket, { type: 'paired', token: TOKEN });
+
+      if (protocol === 'legacy') {
+        send(socket, { ok: true, message: 'Pairing disetujui.' });
+      } else {
+        token = crypto.randomBytes(24).toString('hex');
+        send(socket, { type: 'paired', token });
+      }
+
       console.log(GREEN + '[PAIRED] Controller terhubung.' + RESET);
       return;
     }
 
-    if (data.token !== activeToken) {
+    if (protocol === 'v2' && data.token !== token) {
       send(socket, { type: 'error', message: 'Token tidak valid.' });
       return;
     }
 
-    if (data.type === 'list_apps') {
+    const action = protocol === 'legacy'
+      ? data.action
+      : data.type === 'list_apps' ? 'list'
+      : data.type === 'open_app' ? 'launch'
+      : data.type;
+
+    if (action === 'list' || action === 'list_apps') {
       try {
-        const packages = await listApps();
-        const apps = packages.map(pkg => ({ name: pkg, package: pkg }));
-        send(socket, { type: 'apps', source: 'third-party', apps });
+        const apps = await listApps();
+        if (protocol === 'legacy') {
+          send(socket, { ok: true, apps });
+        } else {
+          send(socket, { type: 'apps', source: 'third-party', apps: apps.map(pkg => ({ name: pkg, package: pkg })) });
+        }
         console.log(GREEN + '[APPS] Mengirim ' + apps.length + ' aplikasi.' + RESET);
       } catch (error) {
-        send(socket, { type: 'error', message: 'Gagal membaca aplikasi: ' + error.message });
+        send(socket, protocol === 'legacy'
+          ? { ok: false, error: 'Gagal membaca aplikasi: ' + error.message }
+          : { type: 'error', message: 'Gagal membaca aplikasi: ' + error.message });
       }
       return;
     }
 
-    if (data.type === 'open_app') {
+    if (action === 'launch' || action === 'open_app') {
       const pkg = String(data.package || '');
       try {
-        const packages = await listApps();
-        if (!packages.includes(pkg)) {
-          send(socket, { ok: false, message: 'Aplikasi tidak ditemukan dalam daftar aplikasi pengguna.' });
+        const apps = await listApps();
+        if (!apps.includes(pkg)) {
+          const message = 'Aplikasi tidak ditemukan dalam daftar aplikasi pengguna.';
+          send(socket, protocol === 'legacy' ? { ok: false, error: message } : { ok: false, message });
           return;
         }
         await run('/system/bin/monkey', ['-p', pkg, '1']);
-        send(socket, { ok: true, message: 'Perintah membuka aplikasi dikirim: ' + pkg });
+        const message = 'Perintah membuka aplikasi dikirim: ' + pkg;
+        send(socket, protocol === 'legacy' ? { ok: true, message } : { ok: true, message });
         console.log(GREEN + '[OPEN] ' + pkg + RESET);
       } catch (error) {
-        send(socket, { ok: false, message: 'Gagal membuka aplikasi: ' + error.message });
+        const message = 'Gagal membuka aplikasi: ' + error.message;
+        send(socket, protocol === 'legacy' ? { ok: false, error: message } : { ok: false, message });
       }
       return;
     }
 
-    send(socket, { type: 'error', message: 'Perintah tidak dikenal.' });
+    if (action === 'disconnect') {
+      send(socket, protocol === 'legacy'
+        ? { ok: true, message: 'Terputus.' }
+        : { type: 'disconnected', ok: true, message: 'Terputus.' });
+      socket.end();
+      return;
+    }
+
+    send(socket, protocol === 'legacy'
+      ? { ok: false, error: 'Aksi tidak dikenal.' }
+      : { type: 'error', message: 'Perintah tidak dikenal.' });
   }
 
   socket.on('data', chunk => {
     buffer += chunk;
-    let lines = [];
+    const lines = [];
     while (buffer.includes('\n')) {
       const index = buffer.indexOf('\n');
       lines.push(buffer.slice(0, index));
@@ -148,21 +184,18 @@ const server = net.createServer(socket => {
         let data;
         try { data = JSON.parse(line); }
         catch {
-          send(socket, { type: 'error', message: 'Format pesan tidak valid.' });
+          send(socket, { type: 'error', ok: false, message: 'Format pesan tidak valid.', error: 'Format pesan tidak valid.' });
           return;
         }
         await handle(data);
       }).catch(error => {
-        send(socket, { type: 'error', message: error.message });
+        send(socket, { type: 'error', ok: false, message: error.message, error: error.message });
       });
     }
   });
 
   socket.on('close', () => {
-    if (activeSocket === socket) {
-      activeSocket = null;
-      activeToken = null;
-    }
+    if (activeSocket === socket) activeSocket = null;
     console.log(YELLOW + '\n[DISCONNECTED] Controller terputus.' + RESET);
   });
   socket.on('error', error => console.log(RED + '[SOCKET] ' + error.message + RESET));
