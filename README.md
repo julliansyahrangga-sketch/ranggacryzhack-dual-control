@@ -64,6 +64,47 @@ cd ~/dual-control-baru
 ls
 ```
 
+## TROUBLESHOOTING TERMUX
+
+### 1. `install-receiver.sh: command not found`
+
+Pastikan sudah berada di folder proyek, lalu panggil installer melalui Bash:
+
+```bash
+cd ~/ranggacryzhack-dual-control
+bash install-receiver.sh
+```
+
+Jika folder hasil clone bernama `dual-control-baru`, gunakan:
+
+```bash
+cd ~/dual-control-baru
+bash install-receiver.sh
+```
+
+### 2. Node.js menampilkan `CANNOT LINK EXECUTABLE`
+
+Pesan seperti `cannot locate symbol` biasanya menunjukkan paket Node.js dan library Termux tidak cocok atau belum diperbarui. Coba perbarui paket terlebih dahulu:
+
+```bash
+pkg update
+pkg upgrade -y
+```
+
+Jika error masih muncul, instal ulang Node.js:
+
+```bash
+pkg uninstall nodejs -y
+pkg install nodejs -y
+node -v
+```
+
+Jika masih gagal, jangan hapus folder proyek. Kirim pesan error lengkap dan versi Termux untuk diperiksa lebih lanjut.
+
+### 3. `git pull` mengatakan `Already up to date`
+
+Artinya salinan proyek lokal sudah sama dengan versi terbaru yang tersedia pada branch yang sedang digunakan. Pastikan perintah dijalankan dari dalam folder repo hasil clone.
+
 ## CATATAN PENTING
 
 - Gunakan hanya pada HP milik sendiri atau dengan izin pemiliknya.
