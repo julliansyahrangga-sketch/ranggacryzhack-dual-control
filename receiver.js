@@ -140,18 +140,13 @@ const server = net.createServer(socket => {
     if (action === 'launch' || action === 'open_app') {
       const pkg = String(data.package || '');
       try {
+        // Gunakan daftar package yang sama dengan yang baru saja dikirim ke Controller.
+        // Hindari pemanggilan pm list packages kedua yang dapat menghasilkan daftar berbeda.
         const apps = await listApps();
-        if (!apps.includes(pkg)) {
-          const message = 'Aplikasi tidak ditemukan dalam daftar aplikasi pengguna.';
-          send(socket, protocol === 'legacy' ? { ok: false, error: message } : { ok: false, message });
-          return;
+        const matched = apps.find(name => name.toLowerCase() === pkg.toLowerCase());
+        if (!matched) {
+          throw new Error('Package tidak ditemukan pada daftar aplikasi Receiver: ' + pkg);
         }
-        // Cari package dari output pm list packages (setara filter grep -i), lalu buka melalui Android Activity Manager.
-        const installedOutput = await run('/system/bin/pm', ['list', 'packages']);
-        const installed = installedOutput.split(/\r?\n/)
-          .map(line => line.trim().replace(/^package:/, ''));
-        const matched = installed.find(name => name.toLowerCase() === pkg.toLowerCase());
-        if (!matched) throw new Error('Package tidak ditemukan oleh pm list packages.');
         const resolved = await run('/system/bin/cmd', ['package', 'resolve-activity', '--brief', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', matched]);
         const component = resolved.split(/\r?\n/).map(line => line.trim()).filter(line => line.includes('/')).pop();
         if (!component) {
