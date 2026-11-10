@@ -151,10 +151,11 @@ const server = net.createServer(socket => {
         // Settings memakai komponen launcher yang diketahui; aplikasi lain
         // dibuka lewat intent launcher yang dibatasi ke package tujuan.
         if (matched === 'com.android.settings') {
-          await run('/system/bin/am', ['start', '-n', 'com.android.settings/.Settings']);
+          await run('/system/bin/am', ['start', '--user', '0', '-n', 'com.android.settings/.Settings']);
         } else {
           await run('/system/bin/am', [
             'start',
+            '--user', '0',
             '-a', 'android.intent.action.MAIN',
             '-c', 'android.intent.category.LAUNCHER',
             '-p', matched
