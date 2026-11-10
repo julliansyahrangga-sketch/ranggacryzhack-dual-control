@@ -4,7 +4,7 @@ Menghubungkan dua HP Android melalui Wi-Fi atau hotspot yang sama. HP Controller
 
 ## 1. INSTALASI
 
-**Lakukan persiapan ini di KEDUA HP** melalui Termux:
+**Lakukan di KEDUA HP** melalui Termux. Perintah ini mengunduh seluruh file proyek, termasuk `receiver.js`, `controller.js`, dan installer:
 
 ```bash
 pkg update -y
@@ -13,9 +13,11 @@ git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-contro
 cd ranggacryzhack-dual-control
 ```
 
+> Jangan jalankan perintah `bash install-receiver.sh` atau `node receiver.js` sebelum masuk ke folder hasil clone. Kalau file tidak ditemukan, berarti folder yang sedang dibuka bukan salinan repo yang lengkap.
+
 ### HP TARGET — Fahri nak meletup
 
-Jalankan di HP Target:
+Jalankan setelah berada di folder proyek:
 
 ```bash
 bash install-receiver.sh
@@ -26,7 +28,7 @@ Biarkan Termux tetap berjalan. Catat **IP** dan **PIN 6 digit** yang ditampilkan
 
 ### HP CONTROLLER — botak pinang
 
-Jalankan di HP Controller:
+Clone repo di HP Controller juga, lalu jalankan:
 
 ```bash
 cd ranggacryzhack-dual-control
@@ -44,6 +46,23 @@ node controller.js
 6. Setelah terhubung, pilih nomor aplikasi di Controller untuk membukanya di HP Target.
 
 **Menu Controller:** `n` halaman berikutnya · `p` halaman sebelumnya · `r` muat ulang aplikasi · `0` putuskan koneksi.
+
+## JIKA FILE TIDAK DITEMUKAN
+
+Pastikan kamu berada di folder repo yang benar:
+
+```bash
+cd ~/ranggacryzhack-dual-control
+ls
+```
+
+Jika folder belum ada, jalankan perintah clone pada bagian Instalasi. Jika folder sudah ada tetapi isinya tidak lengkap, pindah keluar folder lalu clone ulang dengan nama folder baru:
+
+```cd ~
+git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control.git dual-control-baru
+cd ~/dual-control-baru
+ls
+```
 
 ## CATATAN PENTING
 
