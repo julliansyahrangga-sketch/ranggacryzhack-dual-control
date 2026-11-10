@@ -334,12 +334,12 @@ async function session(mode) {
   } else {
     console.log(YELLOW + '[AUTO DISCOVERY] Receiver tidak ditemukan.' + RESET);
     console.log('Pastikan kedua HP berada di jaringan yang sama.');
-    host = (await ask('IP HP adik (manual): ')).trim();
+    host = (await ask('IP HP Target (manual): ')).trim();
     pin = (await ask('PIN 6 digit (manual): ')).trim();
   }
 
   console.log(GREEN + '\n[RECEIVER TERDETEKSI]' + RESET);
-  console.log(GREEN + 'IP HP adik : ' + host + RESET);
+  console.log(GREEN + 'IP HP Target : ' + host + RESET);
   console.log(GREEN + 'PIN        : ' + pin + RESET);
 
   if (!host || !/^\d{6}$/.test(pin)) {
@@ -350,7 +350,7 @@ async function session(mode) {
   const channel = createChannel(socket);
 
   try {
-    console.log(YELLOW + '\nMenunggu persetujuan HP adik...' + RESET);
+    console.log(YELLOW + '\nMenunggu persetujuan HP Target...' + RESET);
 
     const paired = await channel.request({
       type: 'pair',
