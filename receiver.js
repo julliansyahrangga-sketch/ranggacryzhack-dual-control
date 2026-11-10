@@ -148,12 +148,12 @@ const server = net.createServer(socket => {
         }
         // Cari package dari output pm list packages (setara filter grep -i), lalu buka melalui Android Activity Manager.
         const installedOutput = await run('/system/bin/pm', ['list', 'packages']);
-        const installed = installedOutput.split(/\\r?\\n/)
+        const installed = installedOutput.split(/\r?\n/)
           .map(line => line.trim().replace(/^package:/, ''));
         const matched = installed.find(name => name.toLowerCase() === pkg.toLowerCase());
         if (!matched) throw new Error('Package tidak ditemukan oleh pm list packages.');
         const resolved = await run('/system/bin/cmd', ['package', 'resolve-activity', '--brief', '-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER', '-p', matched]);
-        const component = resolved.split(/\\r?\\n/).map(line => line.trim()).filter(line => line.includes('/')).pop();
+        const component = resolved.split(/\r?\n/).map(line => line.trim()).filter(line => line.includes('/')).pop();
         if (!component) {
           throw new Error('Aktivitas launcher tidak ditemukan untuk package: ' + matched);
         }
