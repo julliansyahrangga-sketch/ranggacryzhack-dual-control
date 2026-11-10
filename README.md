@@ -1,196 +1,303 @@
-# RANGGACRYZHACK — Dual Control
+# RANGGACRYZHACK — DUAL CONTROL
 
-Panduan lengkap memasang dan menggunakan Dual Control melalui Termux di dua HP Android.
+Panduan mudah memasang dan memakai Dual Control di **dua HP Android menggunakan Termux**.
 
-Dual Control memungkinkan HP Controller meminta HP Receiver membuka aplikasi yang sudah terpasang. Koneksi memakai Wi-Fi atau hotspot yang sama.
+**Fungsi:** HP Controller dapat meminta HP Receiver membuka aplikasi yang sudah terpasang di HP Receiver melalui Wi-Fi atau hotspot yang sama.
 
-**Repository:** https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control
+Repository: https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control
 
 ---
 
-## 1. Cara kerja dan batasan
+# A. KENALI DULU
 
-- **HP Receiver** adalah HP yang aplikasinya akan dibuka.
-- **HP Controller** adalah HP yang mengirim permintaan untuk membuka aplikasi.
-- Receiver menampilkan PIN enam digit dan meminta persetujuan langsung dari pemilik HP sebelum Controller dapat terhubung.
-- Controller hanya dapat meminta Receiver membuka aplikasi pihak ketiga yang terdeteksi. Program ini bukan remote desktop: tidak menampilkan layar, tidak membaca file, tidak mengakses pesan, dan tidak menyediakan remote shell.
-- Versi ini memakai input IP secara manual. Penemuan perangkat otomatis dan Bluetooth belum tersedia.
-- Gunakan hanya pada perangkat milik sendiri atau dengan izin jelas dari pemilik HP Receiver.
+Ada dua HP dengan tugas berbeda:
 
-**Jangan bagikan PIN pairing atau IP lokal ke publik.** PIN hanya untuk sesi pairing saat itu.
+| HP | Tugas |
+|---|---|
+| **Receiver** | HP yang aplikasinya akan dibuka |
+| **Controller** | HP untuk memilih aplikasi yang ingin dibuka |
 
-## 2. Persiapan
+Contoh: HP adik menjadi Receiver, HP kamu menjadi Controller.
 
-Siapkan:
-1. Dua HP Android.
-2. Termux pada kedua HP.
-3. Koneksi Wi-Fi yang sama, atau sambungkan Controller ke hotspot Receiver.
-4. Ruang penyimpanan yang cukup dan koneksi internet untuk mengunduh Node.js serta repository.
+**Penting:**
+- Gunakan hanya pada HP milik sendiri atau HP yang pemiliknya sudah memberi izin.
+- Pemilik Receiver harus menyetujui koneksi langsung dari layar Termux Receiver.
+- Program ini hanya meminta Receiver membuka aplikasi. Program ini tidak melihat layar, membaca chat/file, atau memberi akses remote shell.
+- Kedua HP harus berada pada Wi-Fi yang sama. Bisa juga Controller tersambung ke hotspot Receiver.
+- PIN dan IP lokal jangan dibagikan ke publik.
+- Versi ini memakai IP manual. Bluetooth dan pencarian perangkat otomatis belum tersedia.
 
-Pastikan kedua HP benar-benar berada pada jaringan yang sama. Jika memakai hotspot, aktifkan hotspot di Receiver lalu sambungkan Controller ke hotspot tersebut.
+# B. PERSIAPAN DI KEDUA HP
 
-## 3. Instalasi di HP Receiver
+Lakukan langkah ini pada **HP Receiver dan HP Controller**.
 
-Lakukan langkah ini pada HP yang akan menerima perintah membuka aplikasi.
+1. Pasang dan buka Termux.
+2. Pastikan internet aktif.
+3. Jalankan perintah satu per satu:
 
-Buka Termux, lalu jalankan:
-
-\`\`\`bash
+~~~bash
 pkg update
-pkg install nodejs git
+pkg install git
+pkg install nodejs
+~~~
+
+Jika Termux bertanya apakah ingin melanjutkan, ketik huruf y lalu tekan Enter.
+
+**Catatan Node.js:** pada beberapa instalasi Termux, paket nodejs dapat menggantikan nodejs-lts. Baca daftar paket yang akan dihapus/dipasang. Jika setuju, ketik y lalu Enter. Jika muncul tulisan Abort, instalasi dibatalkan dan belum selesai. Ulangi perintah pkg install nodejs dan selesaikan konfirmasinya.
+
+Periksa apakah Git dan Node.js sudah tersedia:
+
+~~~bash
+git --version
+node -v
+~~~
+
+Jika keduanya menampilkan nomor versi, lanjutkan.
+
+# C. UNDUH PROYEK DI KEDUA HP
+
+Langkah ini dilakukan **di HP Receiver dan HP Controller**.
+
+Jalankan:
+
+~~~bash
 git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control.git
+~~~
+
+Setelah unduhan selesai, masuk ke folder proyek:
+
+~~~bash
 cd ranggacryzhack-dual-control
+~~~
+
+Periksa isi folder:
+
+~~~bash
+pwd
+ls
+~~~
+
+Seharusnya terlihat file controller.js, receiver.js, install-controller.sh, install-receiver.sh, dan README.md.
+
+**Penting:** jangan menjalankan installer atau file JavaScript sebelum masuk ke folder proyek. Jika muncul No such file or directory, biasanya kamu belum berada di folder yang benar atau proses clone belum berhasil.
+
+# D. SIAPKAN HP RECEIVER
+
+Kerjakan bagian ini hanya di HP yang akan membuka aplikasi.
+
+Masuk ke folder proyek:
+
+~~~bash
+cd ~/ranggacryzhack-dual-control
+~~~
+
+Jalankan installer Receiver:
+
+~~~bash
 bash install-receiver.sh
-\`\`\`
+~~~
 
-Jika proses selesai tanpa error, jalankan:
+Jika selesai tanpa error, jalankan:
 
-\`\`\`bash
+~~~bash
 node receiver.js
-\`\`\`
+~~~
 
-Receiver akan menampilkan PIN enam digit dan pesan bahwa server siap menerima pairing. **Biarkan Termux Receiver tetap berjalan.** Jangan tutup sesi Termux tersebut.
+Receiver akan menampilkan PIN enam digit dan pesan bahwa server siap menerima pairing.
 
-### Melihat IP HP Receiver
+**Biarkan Receiver tetap berjalan.** Jangan tutup sesi Termux tersebut selama ingin memakai Controller.
 
-Buka sesi Termux lain di HP Receiver (atau hentikan sementara Receiver dengan Ctrl+C, lalu jalankan perintah ini):
+## Cari alamat IP Receiver
 
-\`\`\`bash
+Buka sesi Termux lain di HP Receiver, lalu jalankan:
+
+~~~bash
 ip route
-\`\`\`
+~~~
 
-Cari alamat IP lokal pada baris rute jaringan Wi-Fi/hotspot. Biasanya tertulis setelah kata \`src\`, misalnya \`192.168.1.155\`.
+Cari alamat IP setelah tulisan src pada rute Wi-Fi/hotspot. Contoh IP: 192.168.1.155. Itu hanya contoh; gunakan IP yang benar-benar tampil di HP Receiver.
 
-Jika perintah itu tidak menampilkan alamat yang jelas, buka **Pengaturan Android → Wi-Fi → jaringan yang sedang tersambung → Detail/Jaringan**, lalu cari **Alamat IP**.
+Jika sulit menemukannya, buka Pengaturan Android → Wi-Fi → jaringan yang tersambung → Detail jaringan → Alamat IP.
 
-Catat IP tersebut untuk dimasukkan ke Controller. Setelah itu jalankan lagi \`node receiver.js\` bila tadi dihentikan.
+Catat IP tersebut. Jangan bagikan PIN atau IP kepada orang yang tidak dipercaya.
 
-## 4. Instalasi di HP Controller
+# E. SIAPKAN HP CONTROLLER
 
-Lakukan langkah ini pada HP yang akan digunakan untuk memilih aplikasi.
+Kerjakan bagian ini di HP yang akan dipakai memilih aplikasi.
 
-Buka Termux, lalu jalankan:
+Masuk ke folder proyek:
 
-\`\`\`bash
-pkg update
-pkg install nodejs git
-git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control.git
-cd ranggacryzhack-dual-control
+~~~bash
+cd ~/ranggacryzhack-dual-control
+~~~
+
+Jalankan installer Controller:
+
+~~~bash
 bash install-controller.sh
-\`\`\`
+~~~
 
-Jalankan Controller:
+Jika selesai tanpa error, jalankan:
 
-\`\`\`bash
+~~~bash
 node controller.js
-\`\`\`
+~~~
 
-## 5. Menghubungkan kedua HP
+# F. HUBUNGKAN KEDUA HP
 
 Pastikan:
-- Receiver masih menjalankan \`node receiver.js\`.
+- Receiver masih aktif menjalankan node receiver.js.
 - Kedua HP terhubung ke Wi-Fi/hotspot yang sama.
 - Kamu sudah mencatat IP Receiver.
-- PIN enam digit masih terlihat pada layar Receiver.
+- PIN enam digit masih terlihat di layar Receiver.
 
-Di Controller:
-1. Saat diminta \`IP HP Receiver:\`, masukkan IP lokal Receiver, misalnya \`192.168.1.155\`.
-2. Saat diminta \`PIN 6 digit:\`, masukkan PIN yang tampil di Receiver.
-3. Lihat layar Receiver. Pemilik HP Receiver harus membaca permintaan koneksi dan mengetik \`y\` lalu Enter untuk menyetujuinya.
-4. Jika Receiver menolak atau pemiliknya tidak menyetujui, koneksi tidak akan dilanjutkan.
+Di Controller akan muncul pertanyaan:
 
-Jangan menerima permintaan pairing yang tidak kamu kenali.
+~~~text
+IP HP Receiver:
+~~~
 
-## 6. Menggunakan menu Controller
+Masukkan IP lokal Receiver, lalu tekan Enter.
 
-Setelah pairing berhasil, Controller akan meminta daftar aplikasi dari Receiver.
+Berikutnya muncul:
 
-Perintah menu:
+~~~text
+PIN 6 digit:
+~~~
 
-| Input | Fungsi |
+Masukkan PIN enam digit yang sedang tampil di Receiver, lalu tekan Enter.
+
+Sekarang lihat HP Receiver. Akan muncul pertanyaan:
+
+~~~text
+Izinkan HP Controller terhubung? (y/N):
+~~~
+
+Pemilik HP Receiver harus mengetik y lalu Enter untuk menyetujui koneksi.
+
+Jika pemilik Receiver tidak mengenali perangkat yang meminta koneksi, jangan setujui. Ketik n atau biarkan permintaan ditolak.
+
+# G. CARA MEMAKAI MENU
+
+Setelah koneksi berhasil, Controller akan menampilkan daftar aplikasi dari Receiver.
+
+Masukkan nomor aplikasi yang ingin dibuka. Controller akan meminta konfirmasi. Ketik y lalu Enter jika benar.
+
+| Tombol/input | Kegunaan |
 |---|---|
-| Nomor aplikasi | Meminta Receiver membuka aplikasi dengan nomor tersebut |
-| \`n\` | Berpindah ke halaman daftar berikutnya |
-| \`p\` | Kembali ke halaman sebelumnya |
-| \`r\` | Memuat ulang daftar aplikasi |
-| \`0\` | Memutuskan koneksi dan keluar |
+| Nomor aplikasi | Meminta Receiver membuka aplikasi tersebut |
+| n | Melihat halaman aplikasi berikutnya |
+| p | Kembali ke halaman sebelumnya |
+| r | Memuat ulang daftar aplikasi |
+| 0 | Keluar dan memutuskan koneksi |
 
-Daftar ditampilkan delapan aplikasi per halaman. Setelah memilih nomor aplikasi, Controller meminta konfirmasi \`y/N\`. Ketik \`y\` jika memang ingin mengirim permintaan membuka aplikasi tersebut.
+Daftar menampilkan maksimal delapan aplikasi per halaman.
 
-Aplikasi akan terbuka di HP Receiver, bukan di HP Controller.
+**Ingat:** aplikasi akan terbuka di HP Receiver, bukan di HP Controller.
 
-## 7. Menghentikan program
+# H. CARA KELUAR
 
-- Untuk keluar dari Controller, pilih \`0\`.
-- Untuk menghentikan Receiver, tekan **Ctrl+C** pada sesi Termux Receiver.
-- Jika sudah selesai, hentikan Receiver agar tidak terus menunggu koneksi.
+- Di Controller, masukkan 0 untuk memutuskan koneksi.
+- Di Receiver, tekan Ctrl+C pada Termux untuk menghentikan server.
+- Setelah selesai, hentikan Receiver agar tidak terus menunggu koneksi.
 
-## 8. Memperbarui file dari GitHub
+# I. CARA UPDATE PROYEK
 
-Jika repository sudah pernah di-clone, buka folder proyek pada masing-masing HP:
+Jika proyek sudah pernah diunduh, jangan clone ulang. Di masing-masing HP jalankan:
 
-\`\`\`bash
+~~~bash
 cd ~/ranggacryzhack-dual-control
 git pull
-\`\`\`
+~~~
 
-Kemudian jalankan kembali program sesuai peran HP:
+Jalankan program sesuai peran HP:
 
-\`\`\`bash
+Receiver:
+~~~bash
 node receiver.js
-\`\`\`
+~~~
 
-atau:
-
-\`\`\`bash
+Controller:
+~~~bash
 node controller.js
-\`\`\`
+~~~
 
-Jika folder proyek belum ada, ikuti langkah instalasi pada bagian 3 atau 4.
+# J. MASALAH YANG SERING TERJADI
 
-## 9. Mengatasi masalah umum
+## 1. Muncul install-controller.sh: No such file or directory
 
-### Controller menampilkan koneksi gagal atau timeout
-- Pastikan Receiver sedang berjalan dan menampilkan pesan siap.
-- Periksa kembali IP Receiver; jangan masukkan IP Controller.
-- Pastikan kedua HP berada di Wi-Fi/hotspot yang sama.
-- Matikan VPN sementara jika VPN mengubah jalur jaringan lokal.
-- Pastikan tidak ada salah ketik pada IP atau port. Port program adalah TCP \`47831\`.
+Termux tidak menemukan file tersebut di folder saat ini. Jalankan:
 
-### PIN salah
-- Masukkan enam digit PIN yang sedang tampil pada Receiver.
-- Jika Receiver sudah dimulai ulang, gunakan PIN baru yang tampil.
-- Jangan menambahkan spasi atau karakter lain.
+~~~bash
+cd ~/ranggacryzhack-dual-control
+ls
+~~~
 
-### Receiver menolak pairing
-- Periksa layar Receiver. Ketik \`y\` hanya jika kamu mengenali perangkat Controller dan memang ingin mengizinkannya.
-- Jika menolak, mulai koneksi baru dari Controller.
+Pastikan install-controller.sh terlihat. Lalu jalankan:
 
-### Daftar aplikasi kosong atau tidak lengkap
-- Receiver mengambil daftar aplikasi pihak ketiga melalui perintah Android \`pm list packages -3\`.
-- Beberapa aplikasi sistem tidak ditampilkan.
-- Perilaku daftar paket dapat berbeda antarversi Android dan vendor.
+~~~bash
+bash install-controller.sh
+~~~
 
-### Aplikasi gagal dibuka
-- Pastikan aplikasi tersebut masih terpasang di Receiver.
-- Coba buka aplikasi secara manual terlebih dahulu.
-- Beberapa aplikasi atau versi Android membatasi peluncuran dari aplikasi lain.
+## 2. Muncul Cannot find module ... controller.js
 
-### Perintah \`git clone\` atau \`git pull\` gagal
-- Periksa koneksi internet.
-- Pastikan paket Git terpasang dengan \`pkg install git\`.
-- Jika folder proyek sudah ada, masuk ke folder tersebut sebelum menjalankan \`git pull\`. Jangan menjalankan \`git clone\` berulang kali di folder yang sama.
+Biasanya kamu menjalankan Node.js dari folder yang salah. Jalankan:
 
-## 10. Informasi teknis
+~~~bash
+cd ~/ranggacryzhack-dual-control
+ls
+node controller.js
+~~~
 
-- Bahasa: JavaScript (Node.js)
-- Platform yang dituju: Termux pada Android
+## 3. Muncul Abort saat memasang Node.js
+
+Proses pemasangan dibatalkan. Ulangi:
+
+~~~bash
+pkg install nodejs
+~~~
+
+Baca daftar perubahan paket. Jika setuju, ketik y lalu tekan Enter sampai instalasi selesai. Jangan lanjut sebelum perintah selesai.
+
+## 4. Controller tidak bisa terhubung
+
+- Pastikan Receiver masih aktif.
+- Periksa IP Receiver, jangan gunakan IP Controller.
+- Pastikan kedua HP berada pada Wi-Fi/hotspot yang sama.
+- Masukkan PIN yang sedang tampil di Receiver.
+- Pastikan jaringan tidak menghalangi komunikasi antarperangkat.
+- Port TCP program adalah 47831.
+
+## 5. PIN salah
+
+Gunakan PIN terbaru yang terlihat di layar Receiver. Jika Receiver dimulai ulang, PIN akan berubah.
+
+## 6. Daftar aplikasi kosong atau aplikasi gagal dibuka
+
+- Pastikan aplikasi sudah terpasang di Receiver.
+- Coba buka aplikasi tersebut langsung dari HP Receiver.
+- Beberapa versi Android atau aplikasi dapat membatasi daftar paket atau peluncuran aplikasi dari program lain.
+
+## 7. Perintah Git gagal
+
+Pastikan internet aktif dan Git sudah terpasang:
+
+~~~bash
+pkg install git
+git --version
+~~~
+
+Jika folder proyek belum ada, ulangi perintah clone pada Bagian C. Jika folder sudah ada, masuk ke folder itu dan jalankan git pull.
+
+# INFORMASI TEKNIS
+
+- Platform: Android + Termux
+- Runtime: Node.js
 - Protokol: TCP
-- Port: \`47831\`
-- File Receiver: \`receiver.js\`
-- File Controller: \`controller.js\`
-- Skrip pemeriksaan instalasi: \`install-receiver.sh\` dan \`install-controller.sh\`
+- Port: 47831
+- Controller: controller.js
+- Receiver: receiver.js
+- Installer Controller: install-controller.sh
+- Installer Receiver: install-receiver.sh
 
-## Catatan kompatibilitas
-
-Android dan antarmuka vendor dapat berbeda. Fitur jaringan, visibilitas paket, serta pembukaan aplikasi mungkin tidak bekerja sama pada semua perangkat. Gunakan jaringan lokal tepercaya dan jangan mengekspos port Receiver ke internet.
+Kompatibilitas dapat berbeda tergantung versi Android dan merek HP. Gunakan hanya di jaringan lokal tepercaya. Jangan membuka atau meneruskan port Receiver ke internet.
