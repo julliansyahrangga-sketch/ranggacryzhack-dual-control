@@ -38,7 +38,8 @@ function run(file, args) {
 }
 
 async function listApps() {
-  const output = await run('/system/bin/pm', ['list', 'packages']);
+  // -3 membatasi daftar ke aplikasi pihak ketiga (bukan paket sistem bawaan).
+  const output = await run('/system/bin/pm', ['list', 'packages', '-3']);
   return [...new Set(output.split(/\r?\n/)
     .map(line => line.trim().replace(/^package:/, ''))
     .filter(pkg => /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$/.test(pkg)))].sort();
