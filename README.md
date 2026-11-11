@@ -217,7 +217,28 @@ Gunakan PIN terbaru yang sedang tampil di HP Target. Pastikan pemilik Target men
 
 ### 6. Aplikasi tidak terbuka
 
-Pastikan aplikasi tersebut memang terpasang dan bisa dibuka secara normal di HP Target. Dukungan pembukaan aplikasi dapat berbeda antarperangkat dan versi Android.
+Tidak semua aplikasi yang muncul di daftar pasti bisa dibuka oleh Dual Control. Daftar package hanya menunjukkan bahwa paket aplikasi terpasang; itu **bukan jaminan** bahwa Android menyediakan Activity launcher yang bisa dipanggil dari program ini.
+
+Beberapa penyebab aplikasi gagal dibuka:
+
+- Aplikasi tidak memiliki ikon/Activity launcher, misalnya layanan latar belakang, plugin, komponen tambahan, atau aplikasi yang hanya dipanggil oleh aplikasi lain.
+- Activity launcher aplikasi tidak dapat ditemukan oleh Android melalui intent standar, atau tidak diizinkan untuk dijalankan dari luar aplikasinya.
+- Aplikasi memakai mekanisme pembukaan khusus, membutuhkan profil pengguna/ruang aplikasi tertentu, atau memiliki pembatasan dari pengembang.
+- Versi Android, ColorOS, atau ROM perangkat memiliki aturan berbeda tentang peluncuran aplikasi.
+- Aplikasi sudah tidak aktif, dinonaktifkan, belum selesai dipasang, atau package yang dipilih bukan aplikasi yang dimaksud.
+
+**Yang perlu diketahui:**
+- Tanda berhasil dari Controller berarti perintah sudah diproses/dikirim, bukan bukti bahwa tampilan aplikasi pasti terbuka.
+- Jika Android mengembalikan pesan seperti `unable to resolve Intent`, berarti sistem tidak menemukan Activity yang cocok dengan permintaan pembukaan tersebut.
+- WhatsApp dan aplikasi tertentu mungkin memerlukan nama komponen launcher khusus. Komponen satu aplikasi tidak bisa diasumsikan berlaku untuk aplikasi lain.
+- Aplikasi yang tidak bisa dibuka dari Dual Control masih mungkin dapat dibuka secara normal dengan mengetuk ikonnya langsung di HP Target.
+
+**Cara menguji:**
+1. Pastikan aplikasi bisa dibuka langsung di HP Target.
+2. Coba buka aplikasi itu dari Controller.
+3. Jika gagal, catat nama package dan pesan error yang muncul di Receiver/Controller.
+4. Jangan menganggap semua aplikasi akan didukung hanya karena namanya tampil di daftar.
+
 
 ---
 
