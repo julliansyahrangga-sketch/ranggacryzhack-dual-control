@@ -148,22 +148,48 @@ const server = net.createServer(socket => {
         if (!matched) {
           throw new Error('Package tidak ditemukan pada daftar aplikasi Receiver: ' + pkg);
         }
-        // Jalankan perintah Android tanpa menampilkan output perintah ke terminal.
-        // Settings memakai komponen launcher yang diketahui; aplikasi lain
-        // dibuka lewat intent launcher yang dibatasi ke package tujuan.
+        // Cari Activity launcher milik package lewat PackageManager.
+        // Ini menghindari asumsi bahwa semua aplikasi Android 9 menerima
+        // intent launcher yang hanya dibatasi dengan -p.
+        let launchOutput = '';
         if (matched === 'com.android.settings') {
-          await run('/system/bin/am', ['start', '--user', '0', '-n', 'com.android.settings/.Settings']);
+          launchOutput = await run('/system/bin/am', ['start', '--user', '0', '-n', 'com.android.settings/.Settings']);
         } else if (matched === 'com.whatsapp') {
-          // WhatsApp pada perangkat Target ini terbukti dapat dibuka melalui komponen .Main.
-          await run('/system/bin/am', ['start', '--user', '0', '-n', 'com.whatsapp/.Main']);
+          // WhatsApp pada perangkat Target ini terbukti memakai komponen .Main.
+          launchOutput = await run('/system/bin/am', ['start', '--user', '0', '-n', 'com.whatsapp/.Main']);
         } else {
-          await run('/system/bin/am', [
-            'start',
-            '--user', '0',
-            '-a', 'android.intent.action.MAIN',
-            '-c', 'android.intent.category.LAUNCHER',
-            '-p', matched
-          ]);
+          let component = '';
+          try {
+            const query = await run('/system/bin/cmd', [
+              'package', 'query-activities', '--brief', '--components',
+              '--user', '0',
+              '-a', 'android.intent.action.MAIN',
+              '-c', 'android.intent.category.LAUNCHER',
+              '-p', matched
+            ]);
+            const candidates = query.split(/\\r?\\n/)
+              .map(line => line.trim().replace(/^Activity:\\s*/, ''))
+              .filter(line => line.startsWith(matched + '/') && line.includes('/'));
+            if (candidates.length) component = candidates[0];
+          } catch (_) {
+            // Beberapa ROM Android 9 tidak menyediakan subperintah query-activities.
+          }
+
+          if (component) {
+            launchOutput = await run('/system/bin/am', ['start', '--user', '0', '-n', component]);
+          } else {
+            launchOutput = await run('/system/bin/am', [
+              'start', '--user', '0',
+              '-a', 'android.intent.action.MAIN',
+              '-c', 'android.intent.category.LAUNCHER',
+              '-p', matched
+            ]);
+          }
+
+          if (/Error:\\s*(?:Activity not started|unable to resolve)|unable to resolve Intent/i.test(launchOutput)) {
+            throw new Error('Android tidak menemukan Activity launcher untuk ' + matched +
+              '. Output: ' + launchOutput.trim());
+          }
         }
         const message = 'Perintah membuka aplikasi dikirim: ' + pkg;
         send(socket, protocol === 'legacy' ? { ok: true, message } : { ok: true, message });
