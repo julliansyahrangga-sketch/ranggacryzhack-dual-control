@@ -1,10 +1,30 @@
-# RANGGACRYZHACK — DUAL CONTROL
+# RANGGACRYZHACK DUAL CONTROL
 
-Menghubungkan dua HP Android melalui Wi-Fi atau hotspot yang sama. HP Controller dapat meminta HP Target membuka aplikasi yang terpasang, setelah pemilik HP Target menyetujui koneksi.
+Program untuk menghubungkan **dua HP Android** melalui Wi-Fi atau hotspot yang sama.
 
-## 1. INSTALASI
+- **HP Target**: HP yang akan membuka aplikasi.
+- **HP Controller**: HP yang digunakan untuk memilih aplikasi yang akan dibuka di HP Target.
+- Pemilik HP Target harus menyetujui permintaan koneksi terlebih dahulu.
+- Program ini hanya meminta HP Target membuka aplikasi. Program ini tidak mengendalikan layar, membaca pesan, atau mengambil alih HP.
 
-**Lakukan di KEDUA HP** melalui Termux. Perintah ini mengunduh seluruh file proyek, termasuk `receiver.js`, `controller.js`, dan installer:
+---
+
+## PANDUAN INSTALASI DARI NOL
+
+Ikuti langkah sesuai peran HP. **Lakukan instalasi pada kedua HP**, satu sebagai Target dan satu sebagai Controller.
+
+### Persiapan
+
+1. Pasang aplikasi Termux pada kedua HP.
+2. Buka Termux dan pastikan internet aktif.
+3. Jangan tutup Termux selama program sedang digunakan.
+4. Kedua HP harus berada pada jaringan yang sama. Bisa memakai Wi-Fi yang sama atau Controller tersambung ke hotspot Target.
+
+> Jika perintah `pkg` tidak dikenali, pastikan kamu menjalankan perintah di aplikasi Termux, bukan terminal aplikasi lain.
+
+### LANGKAH 1 — Unduh repository di KEDUA HP
+
+Salin dan jalankan perintah ini di Termux HP Target dan HP Controller:
 
 ```bash
 pkg update -y
@@ -13,117 +33,208 @@ git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-contro
 cd ranggacryzhack-dual-control
 ```
 
-> Jangan jalankan perintah `bash install-receiver.sh` atau `node receiver.js` sebelum masuk ke folder hasil clone. Kalau file tidak ditemukan, berarti folder yang sedang dibuka bukan salinan repo yang lengkap.
-
-### HP TARGET — Fahri nak meletup
-
-Jalankan setelah berada di folder proyek:
+Jika muncul pesan bahwa folder sudah ada, jangan clone ulang ke folder yang sama. Masuk ke folder yang sudah ada:
 
 ```bash
+cd ~/ranggacryzhack-dual-control
+```
+
+Periksa file proyek:
+
+```bash
+ls
+```
+
+Seharusnya terlihat file seperti `controller.js`, `receiver.js`, `install-controller.sh`, dan `install-receiver.sh`.
+
+### LANGKAH 2 — Siapkan HP TARGET
+
+Lakukan bagian ini hanya di HP yang akan membuka aplikasi.
+
+Pastikan Termux sedang berada di folder repository, lalu jalankan:
+
+```bash
+cd ~/ranggacryzhack-dual-control
 bash install-receiver.sh
+```
+
+Installer akan memasang Node.js dan memeriksa file Receiver. Setelah selesai, jalankan:
+
+```bash
 node receiver.js
 ```
 
-Biarkan Termux tetap berjalan. Catat **IP** dan **PIN 6 digit** yang ditampilkan.
+Receiver akan menampilkan:
+- **IP ADDRESS** — alamat jaringan HP Target.
+- **PORT** — port koneksi program.
+- **PAIRING PIN** — PIN enam digit untuk menghubungkan Controller.
 
-### HP CONTROLLER — botak pinang
+Catat IP dan PIN tersebut. Biarkan Receiver tetap berjalan. Jangan tutup sesi Termux ini.
 
-Clone repo di HP Controller juga, lalu jalankan:
+### LANGKAH 3 — Siapkan HP CONTROLLER
+
+Di HP Controller, buka Termux dan jalankan:
 
 ```bash
-cd ranggacryzhack-dual-control
+cd ~/ranggacryzhack-dual-control
 bash install-controller.sh
+```
+
+Setelah installer selesai, jalankan:
+
+```bash
 node controller.js
 ```
 
-## 2. CARA PAKAI
+Pilih mode koneksi:
+- `2` untuk Wi-Fi yang sama.
+- `3` untuk koneksi melalui hotspot.
 
-1. Sambungkan kedua HP ke Wi-Fi yang sama, atau sambungkan Controller ke hotspot Target.
-2. Pastikan program Receiver di HP **Fahri nak meletup** masih berjalan.
-3. Di HP **botak pinang**, masukkan IP Target saat diminta.
-4. Masukkan PIN 6 digit yang terlihat di HP Target.
-5. Lihat HP Target. Pemiliknya harus menyetujui permintaan koneksi dengan mengetik `y` lalu Enter.
-6. Setelah terhubung, pilih nomor aplikasi di Controller untuk membukanya di HP Target.
+Jika Receiver tidak ditemukan otomatis, masukkan IP HP Target dan PIN enam digit yang tampil di HP Target.
 
-**Menu Controller:** `n` halaman berikutnya · `p` halaman sebelumnya · `r` muat ulang aplikasi · `0` putuskan koneksi.
+### LANGKAH 4 — Setujui koneksi di HP TARGET
 
-## JIKA FILE TIDAK DITEMUKAN
+Setelah Controller menghubungi Target, lihat Termux di HP Target. Akan muncul permintaan persetujuan.
 
-Pastikan kamu berada di folder repo yang benar:
+Ketik:
 
+```text
+y
+```
+
+Lalu tekan Enter. Jangan menyetujui koneksi dari perangkat yang tidak kamu kenal atau tidak kamu izinkan.
+
+### LANGKAH 5 — Gunakan Controller
+
+Setelah terhubung, daftar aplikasi akan muncul di HP Controller. Pilih nomor aplikasi untuk meminta HP Target membukanya.
+
+Perintah menu:
+- `n` — halaman berikutnya.
+- `p` — halaman sebelumnya.
+- `r` — muat ulang daftar aplikasi.
+- `0` — putuskan koneksi.
+
+Daftar aplikasi difilter di HP Target agar aplikasi sistem bawaan tidak ikut ditampilkan.
+
+---
+
+## CARA MENJALANKAN LAGI SETELAH TERMUX DITUTUP
+
+Tidak perlu clone atau instal ulang.
+
+**Di HP Target:**
 ```bash
 cd ~/ranggacryzhack-dual-control
-ls
+node receiver.js
 ```
 
-Jika folder belum ada, jalankan perintah clone pada bagian Instalasi. Jika folder sudah ada tetapi isinya tidak lengkap, pindah keluar folder lalu clone ulang dengan nama folder baru:
-
-```cd ~
-git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control.git dual-control-baru
-cd ~/dual-control-baru
-ls
-```
-
-## TROUBLESHOOTING TERMUX
-
-### 1. `install-receiver.sh: command not found`
-
-Pastikan sudah berada di folder proyek, lalu panggil installer melalui Bash:
-
+**Di HP Controller:**
 ```bash
 cd ~/ranggacryzhack-dual-control
-bash install-receiver.sh
+node controller.js
 ```
 
-Jika folder hasil clone bernama `dual-control-baru`, gunakan:
+Gunakan IP dan PIN terbaru yang ditampilkan Receiver.
 
-```bash
-cd ~/dual-control-baru
-bash install-receiver.sh
-```
+---
 
-### 2. Node.js menampilkan `CANNOT LINK EXECUTABLE`
+## UPDATE KE VERSI TERBARU
 
-Pesan seperti `cannot locate symbol` biasanya menunjukkan paket Node.js dan library Termux tidak cocok atau belum diperbarui. Coba perbarui paket terlebih dahulu:
-
-```bash
-pkg update
-pkg upgrade -y
-```
-
-Jika error masih muncul, instal ulang Node.js:
-
-```bash
-pkg uninstall nodejs -y
-pkg install nodejs -y
-node -v
-```
-
-Jika masih gagal, jangan hapus folder proyek. Kirim pesan error lengkap dan versi Termux untuk diperiksa lebih lanjut.
-
-### 3. `git pull` mengatakan `Already up to date`
-
-Artinya salinan proyek lokal sudah sama dengan versi terbaru yang tersedia pada branch yang sedang digunakan. Pastikan perintah dijalankan dari dalam folder repo hasil clone.
-
-## CATATAN PENTING
-
-- Gunakan hanya pada HP milik sendiri atau dengan izin pemiliknya.
-- Pemilik HP Target harus menyetujui setiap koneksi.
-- Aplikasi dibuka di HP Target, bukan di Controller.
-- Program ini tidak mengontrol layar atau membaca isi HP.
-- Jangan bagikan IP dan PIN kepada orang yang tidak dipercaya.
-- Jika koneksi gagal, periksa Wi-Fi/hotspot, IP, PIN terbaru, dan pastikan Receiver masih aktif.
-
-## UPDATE
-
-Di masing-masing HP, masuk ke folder proyek lalu jalankan:
+Hentikan program yang sedang berjalan dengan `CTRL + C`, lalu jalankan di masing-masing HP:
 
 ```bash
 cd ~/ranggacryzhack-dual-control
 git pull
 ```
 
-Jalankan kembali sesuai peran:
+Setelah update, jalankan kembali sesuai peran:
 
-- Target: `node receiver.js`
-- Controller: `node controller.js`
+**Target**
+```bash
+node receiver.js
+```
+
+**Controller**
+```bash
+node controller.js
+```
+
+Jika folder hasil clone kamu memakai nama lain, misalnya `dual-control-baru`, ganti perintah `cd` menjadi:
+
+```bash
+cd ~/dual-control-baru
+```
+
+---
+
+## TROUBLESHOOTING
+
+### 1. `bash: install-receiver.sh: No such file` atau file tidak ditemukan
+
+Masuk ke folder repository terlebih dahulu:
+
+```bash
+cd ~/ranggacryzhack-dual-control
+ls
+```
+
+Jika folder belum ada, ulangi proses clone pada Langkah 1.
+
+### 2. `node: command not found`
+
+Pasang Node.js melalui installer sesuai peran:
+
+```bash
+cd ~/ranggacryzhack-dual-control
+bash install-receiver.sh
+```
+
+Untuk HP Controller, gunakan `bash install-controller.sh`.
+
+### 3. `CANNOT LINK EXECUTABLE` atau pesan `cannot locate symbol`
+
+Coba perbarui paket Termux:
+
+```bash
+pkg update
+pkg upgrade -y
+pkg reinstall nodejs -y
+node -v
+```
+
+Jika masih gagal, kirim pesan error lengkap untuk diperiksa. Jangan hapus folder proyek.
+
+### 4. Controller tidak menemukan Receiver
+
+- Pastikan kedua HP berada pada Wi-Fi yang sama, atau Controller tersambung ke hotspot Target.
+- Pastikan Receiver masih berjalan.
+- Jika pencarian otomatis gagal, masukkan IP dan PIN secara manual.
+- Matikan VPN sementara jika koneksi lokal terganggu.
+
+### 5. PIN salah atau koneksi ditolak
+
+Gunakan PIN terbaru yang sedang tampil di HP Target. Pastikan pemilik Target menyetujui permintaan dengan mengetik `y`.
+
+### 6. Aplikasi tidak terbuka
+
+Pastikan aplikasi tersebut memang terpasang dan bisa dibuka secara normal di HP Target. Dukungan pembukaan aplikasi dapat berbeda antarperangkat dan versi Android.
+
+---
+
+## KEAMANAN DAN BATASAN
+
+- Gunakan hanya pada perangkat milik sendiri atau dengan izin pemiliknya.
+- Pemilik HP Target harus menyetujui pairing.
+- Jangan membagikan PIN kepada orang yang tidak dipercaya.
+- IP dan PIN hanya untuk koneksi jaringan lokal yang sedang digunakan.
+- Program ini bukan aplikasi remote desktop dan tidak menyediakan kontrol layar atau sentuhan.
+- Beberapa versi Android atau antarmuka pabrikan dapat membatasi pembukaan aplikasi dari proses latar belakang.
+
+## FILE PROYEK
+
+- `receiver.js` — program di HP Target.
+- `controller.js` — program di HP Controller.
+- `install-receiver.sh` — installer kebutuhan Receiver.
+- `install-controller.sh` — installer kebutuhan Controller.
+
+**Repository:** https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control
