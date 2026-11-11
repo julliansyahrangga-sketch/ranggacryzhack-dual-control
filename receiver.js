@@ -167,8 +167,8 @@ const server = net.createServer(socket => {
               '-c', 'android.intent.category.LAUNCHER',
               '-p', matched
             ]);
-            const candidates = query.split(/\\r?\\n/)
-              .map(line => line.trim().replace(/^Activity:\\s*/, ''))
+            const candidates = query.split(/\r?\n/)
+              .map(line => line.trim().replace(/^Activity:\s*/, ''))
               .filter(line => line.startsWith(matched + '/') && line.includes('/'));
             if (candidates.length) component = candidates[0];
           } catch (_) {
@@ -186,7 +186,7 @@ const server = net.createServer(socket => {
             ]);
           }
 
-          if (/Error:\\s*(?:Activity not started|unable to resolve)|unable to resolve Intent/i.test(launchOutput)) {
+          if (/Error:\s*(?:Activity not started|unable to resolve)|unable to resolve Intent/i.test(launchOutput)) {
             throw new Error('Android tidak menemukan Activity launcher untuk ' + matched +
               '. Output: ' + launchOutput.trim());
           }
