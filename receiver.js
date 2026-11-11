@@ -152,6 +152,9 @@ const server = net.createServer(socket => {
         // dibuka lewat intent launcher yang dibatasi ke package tujuan.
         if (matched === 'com.android.settings') {
           await run('/system/bin/am', ['start', '--user', '0', '-n', 'com.android.settings/.Settings']);
+        } else if (matched === 'com.whatsapp') {
+          // WhatsApp pada perangkat Target ini terbukti dapat dibuka melalui komponen .Main.
+          await run('/system/bin/am', ['start', '--user', '0', '-n', 'com.whatsapp/.Main']);
         } else {
           await run('/system/bin/am', [
             'start',
