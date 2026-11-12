@@ -36,11 +36,11 @@ function banner() {
   console.log(RESET);
 }
 
-function connectTo(host) {
+function connectTo(host, port = PORT) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({
       host,
-      port: PORT
+      port
     });
 
     const timer = setTimeout(() => {
@@ -297,56 +297,21 @@ function renderApps(apps, page, source) {
 }
 
 async function session(mode) {
-  console.log(GREEN + '\n[DISCOVERY] Mencari Receiver di jaringan...' + RESET);
+  banner();
+  console.log(GREEN + '========================================' + RESET);
+  console.log(GREEN + '          SAMBUNGKAN KE TARGET' + RESET);
+  console.log(GREEN + '========================================' + RESET);
+  const host = (await ask('IP TARGET : ')).trim();
+  const rawPort = (await ask('PORT      : ')).trim();
+  const port = Number(rawPort);
+  const pin = (await ask('PIN PAIRING (6 DIGIT) : ')).trim();
 
-  const receivers = await discoverReceivers();
-
-  let host = '';
-  let pin = '';
-
-  if (receivers.length === 1) {
-    host = receivers[0].host;
-    pin = receivers[0].pin;
-  } else if (receivers.length > 1) {
-    console.log(GREEN + '\n[RECEIVER DITEMUKAN]' + RESET);
-
-    receivers.forEach((item, index) => {
-      console.log(
-        GREEN + '[' + (index + 1) + '] IP: ' +
-        item.host + ' | PIN: ' + item.pin + RESET
-      );
-    });
-
-    const selected = Number(
-      (await ask('Pilih Receiver > ')).trim()
-    );
-
-    if (
-      !Number.isInteger(selected) ||
-      selected < 1 ||
-      selected > receivers.length
-    ) {
-      throw new Error('Pilihan Receiver tidak valid.');
-    }
-
-    host = receivers[selected - 1].host;
-    pin = receivers[selected - 1].pin;
-  } else {
-    console.log(YELLOW + '[AUTO DISCOVERY] Receiver tidak ditemukan.' + RESET);
-    console.log('Pastikan kedua HP berada di jaringan yang sama.');
-    host = (await ask('IP HP Target (manual): ')).trim();
-    pin = (await ask('PIN 6 digit (manual): ')).trim();
+  if (!host || !/^\d+$/.test(rawPort) || port < 1 || port > 65535 || !/^\d{6}$/.test(pin)) {
+    throw new Error('IP, port, atau PIN tidak valid.');
   }
+  console.log(GREEN + '\nMenghubungkan ke ' + host + ':' + port + RESET);
 
-  console.log(GREEN + '\n[RECEIVER TERDETEKSI]' + RESET);
-  console.log(GREEN + 'IP HP Target : ' + host + RESET);
-  console.log(GREEN + 'PIN        : ' + pin + RESET);
-
-  if (!host || !/^\d{6}$/.test(pin)) {
-    throw new Error('IP atau PIN tidak valid.');
-  }
-
-  const socket = await connectTo(host);
+  const socket = await connectTo(host, port);
   const channel = createChannel(socket);
 
   try {
