@@ -167,6 +167,28 @@ cd ~/dual-control-baru
 
 ---
 
+## LOCAL DEVICE LOCK
+
+Fitur ini menampilkan halaman lock lokal di HP Target dan menyediakan perintah dari Controller.
+
+1. Jalankan Receiver seperti biasa. Receiver menampilkan **LOCK PIN** empat digit di Termux Target.
+2. Di menu daftar aplikasi Controller, ketik `l` untuk mengaktifkan Local Lock.
+3. Masukkan pesan yang ingin ditampilkan di halaman Target.
+4. Target membuka halaman lokal satu kali di browser pada `http://127.0.0.1:47833`.
+5. Untuk menonaktifkan dari Controller, ketik `u`.
+6. PIN empat digit yang tampil di Termux Target juga dapat digunakan pada halaman untuk menandai halaman sebagai terbuka.
+
+PIN acak dibuat setiap kali Receiver dimulai. Jika ingin menetapkan PIN sendiri, jalankan Receiver seperti ini (ganti 1234 dengan PIN pilihan pemilik Target):
+
+```bash
+cd ~/dual-control-baru
+LOCAL_LOCK_PIN=1234 node receiver.js
+```
+
+**Batasan:** Local Device Lock ini adalah halaman web lokal, bukan Android Kiosk/Device Owner. Fitur ini tidak mencegah pengguna keluar dari Chrome dan tidak akan memaksa Chrome muncul berulang kali. Perintah Controller hanya membuka halaman satu kali saat Lock diaktifkan. Pemilik Target tetap dapat menghentikan Receiver atau menutup halaman.
+
+---
+
 ## TROUBLESHOOTING
 
 ### 1. `bash: install-receiver.sh: No such file` atau file tidak ditemukan
