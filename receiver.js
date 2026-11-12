@@ -204,15 +204,19 @@ const server = net.createServer(socket => {
           run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl])
             .catch(error => console.log(YELLOW + '[LOCAL LOCK] ' + error.message + RESET));
         }, 3000);
+        const requestedDuration = Number(data.durationSeconds);
+        const durationSeconds = Number.isFinite(requestedDuration)
+          ? Math.max(5, Math.min(30, Math.floor(requestedDuration)))
+          : 15;
         chromeSpamStopTimer = setTimeout(() => {
           stopChromeSpam();
-          console.log(YELLOW + '[LOCAL LOCK] Batas uji 30 detik selesai; pengulangan Chrome berhenti.' + RESET);
-        }, 30000);
+          console.log(YELLOW + '[LOCAL LOCK] Batas uji ' + durationSeconds + ' detik selesai; pengulangan Chrome berhenti.' + RESET);
+        }, durationSeconds * 1000);
       } catch (error) {
         stopChromeSpam();
         console.log(YELLOW + '[LOCAL LOCK] Buka Chrome manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
-      send(socket, { type: 'lock_result', ok: true, message: 'Mode uji Chrome aktif maksimal 30 detik. Tombol RANGGACRYZ atau PIN dapat menghentikannya.' });
+      send(socket, { type: 'lock_result', ok: true, message: 'Mode uji Chrome aktif sesuai durasi Controller (maksimal 30 detik). Tombol RANGGACRYZ atau PIN dapat menghentikannya.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
       return;
     }
