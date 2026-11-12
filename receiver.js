@@ -11,7 +11,7 @@ const { execFile } = require('child_process');
 
 const PORT = 47831;
 const LOCK_PORT = 47833;
-const LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
+let LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
 let lockState = { active: false, message: '' };
 let chromeSpamTimer = null;
 let chromeSpamStopTimer = null;
@@ -192,6 +192,12 @@ const server = net.createServer(socket => {
       : data.type;
 
     if (action === 'lock') {
+      const requestedPin = String(data.pin || '');
+      if (!/^\d{4}$/.test(requestedPin)) {
+        send(socket, { type: 'lock_result', ok: false, message: 'PIN Lock harus tepat 4 digit.' });
+        return;
+      }
+      LOCK_PIN = requestedPin;
       lockState = {
         active: true,
         message: String(data.message || 'Perangkat sedang dalam mode Local Device Lock.').slice(0, 500)
