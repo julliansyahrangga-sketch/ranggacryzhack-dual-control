@@ -43,7 +43,10 @@ button:active{transform:scale(.98)}
   <div class="sender">RANGGACRYZHACK • TARGET INTERFACE</div>
  </section>
  <section class="panel">
-  <div class="panel-title">Masukkan PIN Lock untuk UNLOCK</div>
+  <div class="panel-title">Waktunya istirahat mata</div>
+  <div id="countdown" style="text-align:center;color:#00ff99;font-size:30px;font-weight:bold;margin:8px 0 16px">--:--</div>
+  <div style="text-align:center;color:#9aabb5;font-size:12px;margin-bottom:14px">Letakkan HP, alihkan pandangan, dan rileks sejenak.</div>
+  <div class="panel-title">PIN opsional untuk mengakhiri sesi</div>
   <form id="unlockForm">
    <input id="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="off" aria-label="PIN Lock 4 digit" required>
    <button type="submit">UNLOCK DEVICE</button>
@@ -55,14 +58,14 @@ button:active{transform:scale(.98)}
 </main>
 <script>
 const $=id=>document.getElementById(id);
-let busy=false;
+let busy=false;\nlet expiresAt=null;\nlet countdownTimer=null;\nfunction drawCountdown(){\n const el=$('countdown');\n if(!expiresAt){el.textContent='Istirahat';return;}\n const left=Math.max(0,Math.ceil((expiresAt-Date.now())/1000));\n el.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');\n if(left===0)el.textContent='SELESAI';\n}
 async function refresh(){
  if(busy)return;
  try{
   const r=await fetch('/api/state',{cache:'no-store'});
   if(!r.ok)throw Error('HTTP '+r.status);
   const s=await r.json();
-  $('message').textContent=s.message||'Tidak ada pesan dari Controller.';
+  $('message').textContent=s.message||'Tidak ada pesan dari Controller.';\n  expiresAt=s.expiresAt||null;drawCountdown();
   $('status').textContent=s.active?'● LOCK ACTIVE':'● UNLOCKED';
   $('status').style.color=s.active?'#00ff99':'#aab';
   $('status').style.borderColor=s.active?'#00ff99':'#82949f';
