@@ -411,10 +411,18 @@ async function session(mode) {
 
       if (choice === 'l') {
         const message = await ask('Pesan untuk Target (maks. 500 karakter): ');
+        const rawDuration = (await ask('Durasi uji Chrome (5-30 detik): ')).trim();
+        const durationSeconds = Number(rawDuration);
+        if (!/^\\d+$/.test(rawDuration) || durationSeconds < 5 || durationSeconds > 30) {
+          console.log(YELLOW + 'Durasi harus 5 sampai 30 detik.' + RESET);
+          await ask('Enter untuk kembali...');
+          continue;
+        }
         const result = await channel.request({
           type: 'lock',
           token,
-          message: message.slice(0, 500)
+          message: message.slice(0, 500),
+          durationSeconds
         });
         console.log(result.ok ? GREEN + '[LOCK ACTIVE] ' + result.message + RESET : RED + '[FAILED] ' + (result.message || 'Gagal mengaktifkan lock.') + RESET);
         await ask('Enter untuk kembali...');
