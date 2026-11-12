@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07110d">
+<title>RanggaCryz Local Device</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:18px;background:#05090d;color:#fff;font-family:Arial,sans-serif;display:grid;place-items:center}
+.card{width:min(100%,420px);padding:22px;border:1px solid #14563d;border-radius:18px;background:#0c141c;box-shadow:0 0 28px #00ff8830}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}.logo{font-weight:800;color:#00ff99}.status{font-size:10px;color:#00ff99;border:1px solid #00ff99;border-radius:20px;padding:6px 9px}
+h1{text-align:center;font-size:27px;letter-spacing:3px;margin:35px 0 6px}.sub{text-align:center;color:#82949f;font-size:11px}
+.message{margin-top:28px;padding:16px;border:1px solid #245344;border-radius:12px;background:#111f29}.label{font-size:12px;font-weight:bold;color:#00ff99}#message{font-size:14px;line-height:1.6;overflow-wrap:anywhere;margin-top:12px;white-space:pre-wrap}.sender{font-size:10px;color:#82949f;margin-top:12px}
+.panel{margin-top:24px;padding:16px;background:#101b24;border-radius:12px}input{width:100%;padding:15px;background:#060c11;border:1px solid #245344;border-radius:9px;color:white;text-align:center;font-size:22px;letter-spacing:10px;outline:none}button{width:100%;padding:14px;margin-top:12px;border:0;border-radius:9px;background:linear-gradient(90deg,#00ff88,#00aaff);color:#00150d;font-weight:bold}
+#result{min-height:18px;text-align:center;font-size:12px;margin-top:12px;color:#ff9b9b}.brand{text-align:right;margin-top:22px;color:#00ff99;text-shadow:0 0 9px #00ff99;font-size:12px;font-weight:bold}.foot{text-align:center;color:#52636d;font-size:10px;margin-top:18px}
+</style>
+</head>
+<body><main class="card">
+<div class="top"><div class="logo">RANGGACRYZHACK</div><div class="status" id="status">● CONNECTING</div></div>
+<h1>LOCAL DEVICE</h1><div class="sub">DEVICE PROTECTION INTERFACE</div>
+<section class="message"><div class="label">▣ PESAN DARI CONTROLLER</div><div id="message">Menghubungkan ke Receiver...</div><div class="sender">Dikirim melalui RANGGACRYZHACK Controller</div></section>
+<section class="panel"><div style="font-size:14px;font-weight:bold;margin-bottom:14px">Masukkan PIN 4 digit untuk membuka halaman</div>
+<form id="unlockForm"><input id="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="off" required><button type="submit">UNLOCK</button></form><div id="result" aria-live="polite"></div></section>
+<div class="brand">RanggaCryz☠️</div><div class="foot">LOCAL DEVICE • TARGET INTERFACE</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+async function refresh(){try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw Error();const s=await r.json();$('message').textContent=s.message||'Tidak ada pesan.';$('status').textContent=s.active?'● LOCK ACTIVE':'● UNLOCKED';$('status').style.color=s.active?'#00ff99':'#aab';}catch{$('message').textContent='Receiver tidak terhubung.';$('status').textContent='● OFFLINE';}}
+$('unlockForm').addEventListener('submit',async e=>{e.preventDefault();$('result').textContent='Memeriksa PIN...';try{const r=await fetch('/api/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:$('pin').value})});const d=await r.json();$('result').textContent=d.message||'Permintaan selesai.';if(d.ok){$('pin').value='';await refresh();}}catch{$('result').textContent='Receiver tidak dapat dijangkau.';}});
+refresh();
+</script></body></html>
