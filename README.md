@@ -36,7 +36,7 @@ cd ranggacryzhack-dual-control
 Jika muncul pesan bahwa folder sudah ada, jangan clone ulang ke folder yang sama. Masuk ke folder yang sudah ada:
 
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 ```
 
 Periksa file proyek:
@@ -54,7 +54,7 @@ Lakukan bagian ini hanya di HP yang akan membuka aplikasi.
 Pastikan Termux sedang berada di folder repository, lalu jalankan:
 
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 bash install-receiver.sh
 ```
 
@@ -76,7 +76,7 @@ Catat IP dan PIN tersebut. Biarkan Receiver tetap berjalan. Jangan tutup sesi Te
 Di HP Controller, buka Termux dan jalankan:
 
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 bash install-controller.sh
 ```
 
@@ -106,13 +106,20 @@ Lalu tekan Enter. Jangan menyetujui koneksi dari perangkat yang tidak kamu kenal
 
 ### LANGKAH 5 — Gunakan Controller
 
-Setelah terhubung, daftar aplikasi akan muncul di HP Controller. Pilih nomor aplikasi untuk meminta HP Target membukanya.
+Saat Controller dijalankan, masukkan:
+- IP Target yang tampil di Termux Target.
+- Port `47831`.
+- PIN Pairing enam digit dari Receiver.
 
-Perintah menu:
-- `n` — halaman berikutnya.
-- `p` — halaman sebelumnya.
-- `r` — muat ulang daftar aplikasi.
+Setujui pairing dengan mengetik `y` di Termux Target. Setelah terhubung, menu fitur akan tampil:
+
+- `1` — OPEN APP. Menampilkan daftar aplikasi Target.
+- `2` — LOCK DEVICE. Masukkan pesan, PIN Lock baru empat digit, dan durasi uji pembukaan Chrome.
 - `0` — putuskan koneksi.
+
+Di halaman LOCK DEVICE, Controller tetap berada pada layar status dan menyediakan pilihan LOCK dan UNLOCK. PIN Lock empat digit berbeda dari PIN Pairing enam digit.
+
+Pada HP Target, Chrome membuka halaman `http://127.0.0.1:47833`. Halaman menampilkan pesan Controller, kolom PIN, serta tombol darurat RGB `RanggaCryzSOS`. PIN yang benar atau tombol SOS menghentikan sesi Lock. Pengulangan pembukaan Chrome dibatasi 5–30 detik; pengguna Target tetap bisa menutup browser atau menghentikan Receiver.
 
 Daftar aplikasi difilter di HP Target agar aplikasi sistem bawaan tidak ikut ditampilkan.
 
@@ -124,13 +131,13 @@ Tidak perlu clone atau instal ulang.
 
 **Di HP Target:**
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 node receiver.js
 ```
 
 **Di HP Controller:**
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 node controller.js
 ```
 
@@ -143,7 +150,7 @@ Gunakan IP dan PIN terbaru yang ditampilkan Receiver.
 Hentikan program yang sedang berjalan dengan `CTRL + C`, lalu jalankan di masing-masing HP:
 
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 git pull
 ```
 
@@ -169,25 +176,17 @@ cd ~/dual-control-baru
 
 ## LOCAL DEVICE LOCK
 
-Fitur ini menampilkan halaman lock lokal di HP Target dan menyediakan perintah dari Controller.
+1. Jalankan Receiver di HP Target. Catat IP dan port `47831`, lalu biarkan Termux berjalan.
+2. Dari Controller, masukkan IP Target, port, dan PIN Pairing enam digit.
+3. Setelah pairing disetujui, pilih `2` untuk LOCK DEVICE.
+4. Masukkan pesan, PIN Lock baru empat digit, dan durasi pengulangan Chrome (5–30 detik).
+5. Controller tetap menampilkan layar LOCK DEVICE dengan pilihan LOCK dan UNLOCK.
+6. Halaman lokal di Chrome Target menampilkan pesan, kolom PIN, dan tombol RGB `RanggaCryzSOS`.
+7. PIN benar, tombol SOS, atau perintah UNLOCK dari Controller menghentikan sesi Lock.
 
-1. Jalankan Receiver seperti biasa. Receiver menampilkan **LOCK PIN** empat digit di Termux Target.
-2. Di menu daftar aplikasi Controller, ketik `l` untuk mengaktifkan Local Lock.
-3. Masukkan pesan yang ingin ditampilkan di halaman Target.
-4. Target membuka halaman lokal satu kali di browser pada `http://127.0.0.1:47833`.
-5. Untuk menonaktifkan dari Controller, ketik `u`.
-6. PIN empat digit yang tampil di Termux Target juga dapat digunakan pada halaman untuk menandai halaman sebagai terbuka.
+Halaman `lock.html` terpisah dari `receiver.js`, tetapi disajikan oleh server HTTP Receiver pada port lokal `47833`. Keduanya berkomunikasi melalui endpoint `/api/state`, `/api/unlock`, dan `/api/emergency-stop`.
 
-PIN acak dibuat setiap kali Receiver dimulai. Jika ingin menetapkan PIN sendiri, jalankan Receiver seperti ini (ganti 1234 dengan PIN pilihan pemilik Target):
-
-```bash
-cd ~/dual-control-baru
-LOCAL_LOCK_PIN=1234 node receiver.js
-```
-
-**Batasan:** Local Device Lock ini adalah halaman web lokal, bukan Android Kiosk/Device Owner. Fitur ini tidak mencegah pengguna keluar dari Chrome dan tidak akan memaksa Chrome muncul berulang kali. Perintah Controller hanya membuka halaman satu kali saat Lock diaktifkan. Pemilik Target tetap dapat menghentikan Receiver atau menutup halaman.
-
----
+Pengulangan Chrome hanya berlangsung selama durasi yang dimasukkan (maksimal 30 detik). Fitur ini bukan Android Kiosk/Device Owner dan tidak mencegah pemilik Target menutup browser atau menghentikan Receiver.
 
 ## TROUBLESHOOTING
 
@@ -196,7 +195,7 @@ LOCAL_LOCK_PIN=1234 node receiver.js
 Masuk ke folder repository terlebih dahulu:
 
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 ls
 ```
 
@@ -207,7 +206,7 @@ Jika folder belum ada, ulangi proses clone pada Langkah 1.
 Pasang Node.js melalui installer sesuai peran:
 
 ```bash
-cd ~/ranggacryzhack-dual-control
+cd ~/dual-control-baru
 bash install-receiver.sh
 ```
 
