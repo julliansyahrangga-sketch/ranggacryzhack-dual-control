@@ -11,7 +11,7 @@ const { execFile } = require('child_process');
 
 const PORT = 47831;
 const LOCK_PORT = 47833;
-const LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
+const LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
 let lockState = { active: false, message: '' };
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
