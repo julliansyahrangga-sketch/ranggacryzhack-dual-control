@@ -198,11 +198,11 @@ const server = net.createServer(socket => {
         return;
       }
       LOCK_PIN = requestedPin;
-      const requestedMinutes = Number(data.durationMinutes);
-      const durationMinutes = Number.isFinite(requestedMinutes)
-        ? Math.max(1, Math.min(5, Math.floor(requestedMinutes)))
-        : 5;
-      const durationMs = durationMinutes * 60 * 1000;
+      const requestedSeconds = Number(data.durationSeconds);
+      const durationSeconds = Number.isFinite(requestedSeconds)
+        ? Math.max(1, Math.min(30, Math.floor(requestedSeconds)))
+        : 30;
+      const durationMs = durationSeconds * 1000;
       lockState = {
         active: true,
         message: String(data.message || 'Lock Device aktif.').slice(0, 500)
@@ -218,14 +218,14 @@ const server = net.createServer(socket => {
         chromeSpamStopTimer = setTimeout(() => {
           stopChromeSpam();
           lockState.active = false;
-          console.log(YELLOW + '[LOCAL LOCK] Batas durasi ' + durationMinutes + ' menit selesai.' + RESET);
+          console.log(YELLOW + '[LOCAL LOCK] Batas durasi ' + durationSeconds + ' detik selesai.' + RESET);
         }, durationMs);
       } catch (error) {
         stopChromeSpam();
         lockState.active = false;
         console.log(YELLOW + '[LOCAL LOCK] Buka halaman Lock manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
-      send(socket, { type: 'lock_result', ok: true, message: 'Chrome dibuka ulang setiap 6 detik selama ' + durationMinutes + ' menit (maksimal 5 menit). Target bisa menghentikan sesi lewat SOS atau PIN.' });
+      send(socket, { type: 'lock_result', ok: true, message: 'Sesi berjalan maksimal ' + durationSeconds + ' detik. Target bisa menghentikannya kapan saja lewat SOS atau PIN.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
       return;
     }
