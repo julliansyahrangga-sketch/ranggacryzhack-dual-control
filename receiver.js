@@ -13,6 +13,14 @@ const PORT = 47831;
 const LOCK_PORT = 47833;
 const LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
 let lockState = { active: false, message: '' };
+let chromeSpamTimer = null;
+let chromeSpamStopTimer = null;
+function stopChromeSpam() {
+  if (chromeSpamTimer) clearInterval(chromeSpamTimer);
+  if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
+  chromeSpamTimer = null;
+  chromeSpamStopTimer = null;
+}
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const RED = '\x1b[31m';
@@ -64,6 +72,14 @@ const webServer = http.createServer((req, res) => {
     res.end(JSON.stringify(lockState));
     return;
   }
+  if (req.method === 'POST' && req.url === '/api/emergency-stop') {
+    stopChromeSpam();
+    lockState.active = false;
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: true, message: 'MODE BERHENTI. Pengulangan Chrome dinonaktifkan.' }));
+    console.log(YELLOW + '[LOCAL LOCK] Emergency stop ditekan dari halaman.' + RESET);
+    return;
+  }
   if (req.method === 'POST' && req.url === '/api/unlock') {
     let body = '';
     req.on('data', chunk => {
@@ -78,6 +94,7 @@ const webServer = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: false, message: 'PIN salah.' }));
         return;
       }
+      stopChromeSpam();
       lockState.active = false;
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, message: 'PIN benar. Halaman berhasil dibuka.' }));
@@ -179,17 +196,29 @@ const server = net.createServer(socket => {
         active: true,
         message: String(data.message || 'Perangkat sedang dalam mode Local Device Lock.').slice(0, 500)
       };
+      stopChromeSpam();
       try {
-        await run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', 'http://127.0.0.1:' + LOCK_PORT]);
+        const lockUrl = 'http://127.0.0.1:' + LOCK_PORT;
+        await run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl]);
+        chromeSpamTimer = setInterval(() => {
+          run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl])
+            .catch(error => console.log(YELLOW + '[LOCAL LOCK] ' + error.message + RESET));
+        }, 3000);
+        chromeSpamStopTimer = setTimeout(() => {
+          stopChromeSpam();
+          console.log(YELLOW + '[LOCAL LOCK] Batas uji 30 detik selesai; pengulangan Chrome berhenti.' + RESET);
+        }, 30000);
       } catch (error) {
+        stopChromeSpam();
         console.log(YELLOW + '[LOCAL LOCK] Buka Chrome manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
-      send(socket, { type: 'lock_result', ok: true, message: 'Local Lock aktif. Halaman dibuka satu kali.' });
+      send(socket, { type: 'lock_result', ok: true, message: 'Mode uji Chrome aktif maksimal 30 detik. Tombol RANGGACRYZ atau PIN dapat menghentikannya.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
       return;
     }
 
     if (action === 'unlock') {
+      stopChromeSpam();
       lockState.active = false;
       send(socket, { type: 'unlock_result', ok: true, message: 'Local Lock dinonaktifkan oleh Controller.' });
       console.log(YELLOW + '[LOCAL LOCK] Dinonaktifkan Controller.' + RESET);
