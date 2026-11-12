@@ -428,10 +428,10 @@ async function session(mode) {
           await ask('Enter untuk kembali...');
           continue;
         }
-        const rawDuration = (await ask('Durasi uji Chrome (5-30 detik; pengulangan tiap 6 detik): ')).trim();
-        const durationSeconds = Number(rawDuration);
-        if (!/^\d+$/.test(rawDuration) || durationSeconds < 5 || durationSeconds > 30) {
-          console.log(RED + 'Durasi harus 5 sampai 30 detik.' + RESET);
+        const rawDuration = (await ask('Durasi istirahat mata (1-6 menit): ')).trim();
+        const durationMinutes = Number(rawDuration);
+        if (!/^\d+$/.test(rawDuration) || durationMinutes < 1 || durationMinutes > 6) {
+          console.log(RED + 'Durasi harus 1 sampai 6 menit.' + RESET);
           await ask('Enter untuk kembali...');
           continue;
         }
@@ -439,7 +439,7 @@ async function session(mode) {
         let lockActive = false;
         async function setLock() {
           const result = await channel.request({
-            type: 'lock', token, message, pin: newPin, durationSeconds
+            type: 'lock', token, message, pin: newPin, durationMinutes
           });
           if (!result.ok) throw new Error(result.message || 'Gagal mengaktifkan Lock Device.');
           lockActive = true;
@@ -462,7 +462,7 @@ async function session(mode) {
           console.log(GREEN + '========================================' + RESET);
           console.log('STATUS : ' + (lockActive ? GREEN + 'LOCK ACTIVE' : YELLOW + 'UNLOCKED') + RESET);
           console.log('PIN    : tersimpan untuk sesi Lock ini');
-          console.log('Chrome : tiap 6 detik, maksimal ' + durationSeconds + ' detik');
+          console.log('ISTIRAHAT : maksimal ' + durationMinutes + ' menit');
           console.log('');
           console.log('[1] LOCK');
           console.log('[2] UNLOCK');
