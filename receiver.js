@@ -13,10 +13,9 @@ const PORT = 47831;
 const LOCK_PORT = 47833;
 let LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
 let lockState = { active: false, message: '' };
-let chromeSpamTimer = null;
+
 let chromeSpamStopTimer = null;
 function stopChromeSpam() {
-  if (chromeSpamTimer) clearInterval(chromeSpamTimer);
   if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
   chromeSpamTimer = null;
   chromeSpamStopTimer = null;
@@ -76,8 +75,8 @@ const webServer = http.createServer((req, res) => {
     stopChromeSpam();
     lockState.active = false;
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ ok: true, message: 'MODE BERHENTI. Pengulangan Chrome dinonaktifkan.' }));
-    console.log(YELLOW + '[LOCAL LOCK] Emergency stop ditekan dari halaman.' + RESET);
+    res.end(JSON.stringify({ ok: true, message: 'Sesi istirahat dihentikan.' }));
+    console.log(YELLOW + '[LOCAL LOCK] SOS ditekan dari halaman.' + RESET);
     return;
   }
   if (req.method === 'POST' && req.url === '/api/unlock') {
@@ -198,31 +197,31 @@ const server = net.createServer(socket => {
         return;
       }
       LOCK_PIN = requestedPin;
+      const requestedMinutes = Number(data.durationMinutes);
+      const durationMinutes = Number.isFinite(requestedMinutes)
+        ? Math.max(1, Math.min(6, Math.floor(requestedMinutes)))
+        : 6;
+      const durationMs = durationMinutes * 60 * 1000;
       lockState = {
         active: true,
-        message: String(data.message || 'Perangkat sedang dalam mode Local Device Lock.').slice(0, 500)
+        message: String(data.message || 'Waktunya istirahat mata. Letakkan HP sejenak dan rilekskan pandangan.').slice(0, 500),
+        expiresAt: Date.now() + durationMs
       };
       stopChromeSpam();
       try {
         const lockUrl = 'http://127.0.0.1:' + LOCK_PORT;
         await run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl]);
-        chromeSpamTimer = setInterval(() => {
-          run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl])
-            .catch(error => console.log(YELLOW + '[LOCAL LOCK] ' + error.message + RESET));
-        }, 6000);
-        const requestedDuration = Number(data.durationSeconds);
-        const durationSeconds = Number.isFinite(requestedDuration)
-          ? Math.max(5, Math.min(30, Math.floor(requestedDuration)))
-          : 15;
         chromeSpamStopTimer = setTimeout(() => {
           stopChromeSpam();
-          console.log(YELLOW + '[LOCAL LOCK] Batas uji ' + durationSeconds + ' detik selesai; pengulangan Chrome berhenti.' + RESET);
-        }, durationSeconds * 1000);
+          lockState.active = false;
+          console.log(YELLOW + '[LOCAL LOCK] Sesi istirahat ' + durationMinutes + ' menit selesai.' + RESET);
+        }, durationMs);
       } catch (error) {
         stopChromeSpam();
-        console.log(YELLOW + '[LOCAL LOCK] Buka Chrome manual: http://127.0.0.1:' + LOCK_PORT + RESET);
+        lockState.active = false;
+        console.log(YELLOW + '[LOCAL LOCK] Buka halaman istirahat manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
-      send(socket, { type: 'lock_result', ok: true, message: 'Mode uji Chrome aktif: Chrome diulang setiap 6 detik selama durasi Controller (maksimal 30 detik). Tombol RANGGACRYZ atau PIN dapat menghentikannya.' });
+      send(socket, { type: 'lock_result', ok: true, message: 'Halaman istirahat dibuka satu kali. Durasi ' + durationMinutes + ' menit; Target bisa menghentikan sesi lewat SOS atau PIN.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
       return;
     }
