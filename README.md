@@ -114,12 +114,12 @@ Saat Controller dijalankan, masukkan:
 Setujui pairing dengan mengetik `y` di Termux Target. Setelah terhubung, menu fitur akan tampil:
 
 - `1` — OPEN APP. Menampilkan daftar aplikasi Target.
-- `2` — LOCK DEVICE. Masukkan pesan, PIN Lock baru empat digit, dan durasi Lock (1–30 detik).
+- `2` — LOCK DEVICE. Masukkan pesan, PIN Lock baru empat digit, dan interval Chrome (1–30 detik) dan durasi sesi (1–5 menit).
 - `0` — putuskan koneksi.
 
 Di halaman LOCK DEVICE, Controller tetap berada pada layar status dan menyediakan pilihan LOCK dan UNLOCK. PIN Lock empat digit berbeda dari PIN Pairing enam digit.
 
-Pada HP Target, Chrome membuka halaman `http://127.0.0.1:47833`. Halaman menampilkan pesan Controller, kolom PIN, serta tombol darurat RGB `RanggaCryzSOS`. PIN yang benar atau tombol SOS menghentikan sesi Lock. Chrome dibuka ulang setiap 6 detik selama durasi yang dipilih (maksimal 30 detik). Target dapat menghentikan sesi melalui SOS atau PIN, dan sesi berhenti jika Controller terputus.
+Pada HP Target, Chrome membuka halaman `http://127.0.0.1:47833`. Halaman menampilkan pesan Controller, kolom PIN, serta tombol darurat RGB `RanggaCryzSOS`. PIN yang benar atau tombol SOS menghentikan sesi Lock. Chrome dibuka ulang sesuai interval yang dipilih (1–30 detik), selama durasi sesi yang dipilih (maksimal 5 menit). Target dapat menghentikan sesi melalui SOS atau PIN, dan sesi berhenti jika Controller terputus.
 
 Daftar aplikasi difilter di HP Target agar aplikasi sistem bawaan tidak ikut ditampilkan.
 
@@ -179,14 +179,14 @@ cd ~/dual-control-baru
 1. Jalankan Receiver di HP Target. Catat IP dan port `47831`, lalu biarkan Termux berjalan.
 2. Dari Controller, masukkan IP Target, port, dan PIN Pairing enam digit.
 3. Setelah pairing disetujui, pilih `2` untuk LOCK DEVICE.
-4. Masukkan pesan, PIN Lock baru empat digit, dan durasi Lock (1–30 detik).
+4. Masukkan pesan, PIN Lock baru empat digit, dan interval Chrome (1–30 detik) dan durasi sesi (1–5 menit).
 5. Controller tetap menampilkan layar LOCK DEVICE dengan pilihan LOCK dan UNLOCK.
 6. Halaman lokal di Chrome Target menampilkan pesan, kolom PIN, dan tombol RGB `RanggaCryzSOS`.
 7. PIN benar, tombol SOS, atau perintah UNLOCK dari Controller menghentikan sesi Lock.
 
 Halaman `lock.html` terpisah dari `receiver.js`, tetapi disajikan oleh server HTTP Receiver pada port lokal `47833`. Keduanya berkomunikasi melalui endpoint `/api/state`, `/api/unlock`, dan `/api/emergency-stop`.
 
-Chrome dibuka ulang setiap 6 detik dan hanya selama durasi yang dimasukkan (maksimal 30 detik). Sesi berhenti melalui SOS, PIN, UNLOCK Controller, atau saat Controller terputus. Fitur ini bukan Android Kiosk/Device Owner dan tidak mencegah pemilik Target menutup browser atau menghentikan Receiver.
+Chrome dibuka ulang sesuai interval 1–30 detik dan hanya selama durasi sesi yang dimasukkan (maksimal 5 menit). Sesi berhenti melalui SOS, PIN, UNLOCK Controller, atau saat Controller terputus. Fitur ini bukan Android Kiosk/Device Owner dan tidak mencegah pemilik Target menutup browser atau menghentikan Receiver.
 
 ## TROUBLESHOOTING
 
