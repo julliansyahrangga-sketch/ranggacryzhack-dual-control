@@ -16,6 +16,7 @@ let lockState = { active: false, message: '' };
 let chromeSpamTimer = null;
 let chromeSpamStopTimer = null;
 function stopChromeSpam() {
+  if (chromeSpamTimer) clearInterval(chromeSpamTimer);
   if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
   chromeSpamTimer = null;
   chromeSpamStopTimer = null;
