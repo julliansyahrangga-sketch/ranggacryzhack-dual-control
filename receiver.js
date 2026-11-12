@@ -1,12 +1,18 @@
 'use strict';
 
 const net = require('net');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const os = require('os');
 const readline = require('readline');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 
 const PORT = 47831;
+const LOCK_PORT = 47833;
+const LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
+let lockState = { active: false, message: '' };
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const RED = '\x1b[31m';
@@ -50,6 +56,53 @@ function send(socket, data) {
 }
 
 let activeSocket = null;
+
+const webServer = http.createServer((req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method === 'GET' && req.url === '/api/state') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(lockState));
+    return;
+  }
+  if (req.method === 'POST' && req.url === '/api/unlock') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > 2048) req.destroy();
+    });
+    req.on('end', () => {
+      let data = {};
+      try { data = JSON.parse(body || '{}'); } catch {}
+      if (String(data.pin || '') !== LOCK_PIN) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, message: 'PIN salah.' }));
+        return;
+      }
+      lockState.active = false;
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, message: 'PIN benar. Halaman berhasil dibuka.' }));
+      console.log(GREEN + '[LOCAL LOCK] PIN benar; status halaman dibuka.' + RESET);
+    });
+    return;
+  }
+  if (req.method === 'GET' && (req.url === '/' || req.url === '/lock.html')) {
+    fs.readFile(path.join(__dirname, 'lock.html'), (error, data) => {
+      if (error) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('lock.html tidak ditemukan. Jalankan git pull terlebih dahulu.');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(data);
+    });
+    return;
+  }
+  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Not found');
+});
+webServer.listen(LOCK_PORT, '127.0.0.1', () => {
+  console.log(GREEN + '[LOCAL LOCK] http://127.0.0.1:' + LOCK_PORT + RESET);
+});
 
 const server = net.createServer(socket => {
   if (activeSocket && !activeSocket.destroyed) {
@@ -120,6 +173,28 @@ const server = net.createServer(socket => {
       : data.type === 'list_apps' ? 'list'
       : data.type === 'open_app' ? 'launch'
       : data.type;
+
+    if (action === 'lock') {
+      lockState = {
+        active: true,
+        message: String(data.message || 'Perangkat sedang dalam mode Local Device Lock.').slice(0, 500)
+      };
+      try {
+        await run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', 'http://127.0.0.1:' + LOCK_PORT]);
+      } catch (error) {
+        console.log(YELLOW + '[LOCAL LOCK] Buka Chrome manual: http://127.0.0.1:' + LOCK_PORT + RESET);
+      }
+      send(socket, { type: 'lock_result', ok: true, message: 'Local Lock aktif. Halaman dibuka satu kali.' });
+      console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
+      return;
+    }
+
+    if (action === 'unlock') {
+      lockState.active = false;
+      send(socket, { type: 'unlock_result', ok: true, message: 'Local Lock dinonaktifkan oleh Controller.' });
+      console.log(YELLOW + '[LOCAL LOCK] Dinonaktifkan Controller.' + RESET);
+      return;
+    }
 
     if (action === 'list' || action === 'list_apps') {
       try {
@@ -260,6 +335,8 @@ console.log(GREEN + 'IP ADDRESS :' + RESET);
 if (ips.length) ips.forEach(ip => console.log('  ' + ip));
 else console.log(YELLOW + '  IP belum terdeteksi. Sambungkan Wi-Fi/hotspot.' + RESET);
 console.log(GREEN + 'PORT       : ' + PORT + RESET);
+console.log(GREEN + 'LOCAL LOCK : 127.0.0.1:' + LOCK_PORT + RESET);
+console.log(GREEN + 'LOCK PIN   : ' + LOCK_PIN + RESET);
 console.log(GREEN + 'PAIRING PIN: ' + PIN + RESET);
 console.log(YELLOW + '\nMasukkan IP dan PIN ini di HP Controller.' + RESET);
 console.log(YELLOW + 'Menunggu koneksi dan persetujuan pairing...' + RESET);
