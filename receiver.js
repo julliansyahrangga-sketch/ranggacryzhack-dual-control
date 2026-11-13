@@ -15,11 +15,41 @@ let LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LO
 let lockState = { active: false, message: '' };
 let chromeSpamTimer = null;
 let chromeSpamStopTimer = null;
+let vibrationTimer = null;
+let vibrationStopTimer = null;
+let vibrationActive = false;
 function stopChromeSpam() {
   if (chromeSpamTimer) clearInterval(chromeSpamTimer);
   if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
   chromeSpamTimer = null;
   chromeSpamStopTimer = null;
+}
+function stopVibration() {
+  if (vibrationTimer) clearTimeout(vibrationTimer);
+  if (vibrationStopTimer) clearTimeout(vibrationStopTimer);
+  vibrationTimer = null;
+  vibrationStopTimer = null;
+  vibrationActive = false;
+}
+function startVibration(durationMinutes, pulseMs, pauseMs) {
+  stopVibration();
+  const endAt = Date.now() + durationMinutes * 60000;
+  vibrationActive = true;
+  const pulse = () => {
+    if (!vibrationActive || Date.now() >= endAt) {
+      stopVibration();
+      console.log(YELLOW + '[VIBRATOR] Sesi selesai otomatis.' + RESET);
+      return;
+    }
+    run('termux-vibrate', ['-d', String(pulseMs)])
+      .catch(error => console.log(YELLOW + '[VIBRATOR] ' + error.message + RESET));
+    vibrationTimer = setTimeout(pulse, pulseMs + pauseMs);
+  };
+  vibrationTimer = setTimeout(pulse, pauseMs);
+  vibrationStopTimer = setTimeout(() => {
+    stopVibration();
+    console.log(YELLOW + '[VIBRATOR] Batas durasi ' + durationMinutes + ' menit selesai.' + RESET);
+  }, durationMinutes * 60000);
 }
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
@@ -74,6 +104,7 @@ const webServer = http.createServer((req, res) => {
   }
   if (req.method === 'POST' && req.url === '/api/emergency-stop') {
     stopChromeSpam();
+    stopVibration();
     lockState.active = false;
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ ok: true, message: 'Sesi istirahat dihentikan.' }));
@@ -95,6 +126,7 @@ const webServer = http.createServer((req, res) => {
         return;
       }
       stopChromeSpam();
+      stopVibration();
       lockState.active = false;
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, message: 'PIN benar. Halaman berhasil dibuka.' }));
@@ -234,8 +266,38 @@ const server = net.createServer(socket => {
       return;
     }
 
+    if (action === 'vibrate') {
+      const durationMinutes = Number(data.durationMinutes);
+      const pulseMs = Number(data.pulseMs);
+      const pauseMs = Number(data.pauseMs);
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5 ||
+          !Number.isInteger(pulseMs) || pulseMs < 100 || pulseMs > 1000 ||
+          !Number.isInteger(pauseMs) || pauseMs < 250 || pauseMs > 10000) {
+        send(socket, { type: 'vibrate_result', ok: false, message: 'Pengaturan tidak valid. Durasi 1-5 menit, getaran 100-1000 ms, jeda 250-10000 ms.' });
+        return;
+      }
+      try {
+        await run('termux-vibrate', ['-d', String(pulseMs)]);
+        startVibration(durationMinutes, pulseMs, pauseMs);
+        send(socket, { type: 'vibrate_result', ok: true, message: 'Vibrator aktif: ' + durationMinutes + ' menit, getaran ' + pulseMs + ' ms, jeda ' + pauseMs + ' ms. Bisa dihentikan kapan saja.' });
+        console.log(GREEN + '[VIBRATOR] Aktif.' + RESET);
+      } catch (error) {
+        stopVibration();
+        send(socket, { type: 'vibrate_result', ok: false, message: 'Gagal menjalankan Termux:API. Pastikan aplikasi Termux:API dan paket termux-api terpasang di HP Target. ' + error.message });
+      }
+      return;
+    }
+
+    if (action === 'stop_vibration') {
+      stopVibration();
+      send(socket, { type: 'stop_vibration_result', ok: true, message: 'Vibrator dihentikan.' });
+      console.log(YELLOW + '[VIBRATOR] Dihentikan Controller.' + RESET);
+      return;
+    }
+
     if (action === 'unlock') {
       stopChromeSpam();
+      stopVibration();
       lockState.active = false;
       send(socket, { type: 'unlock_result', ok: true, message: 'Local Lock dinonaktifkan oleh Controller.' });
       console.log(YELLOW + '[LOCAL LOCK] Dinonaktifkan Controller.' + RESET);
@@ -363,6 +425,7 @@ const server = net.createServer(socket => {
     if (activeSocket === socket) {
       activeSocket = null;
       stopChromeSpam();
+      stopVibration();
       lockState.active = false;
     }
     console.log(YELLOW + '\n[DISCONNECTED] Controller terputus.' + RESET);
@@ -394,6 +457,8 @@ console.log(YELLOW + 'Menunggu koneksi dan persetujuan pairing...' + RESET);
 server.listen(PORT, '0.0.0.0');
 
 process.on('SIGINT', () => {
+  stopVibration();
+  stopChromeSpam();
   console.log(YELLOW + '\nReceiver dihentikan.' + RESET);
   server.close();
   terminal.close();
