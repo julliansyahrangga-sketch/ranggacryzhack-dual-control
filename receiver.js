@@ -13,13 +13,40 @@ const PORT = 47831;
 const LOCK_PORT = 47833;
 let LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
 let lockState = { active: false, message: '' };
-let chromeSpamTimer = null;
-let chromeSpamStopTimer = null;
-function stopChromeSpam() {
-  if (chromeSpamTimer) clearInterval(chromeSpamTimer);
-  if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
-  chromeSpamTimer = null;
-  chromeSpamStopTimer = null;
+let vibrationTimer = null;
+let lockDurationTimer = null;
+let vibrationWarningShown = false;
+
+function stopVibration() {
+  if (vibrationTimer) clearInterval(vibrationTimer);
+  vibrationTimer = null;
+}
+
+function stopLockEffects() {
+  stopVibration();
+  if (lockDurationTimer) clearTimeout(lockDurationTimer);
+  lockDurationTimer = null;
+}
+
+function startVibration() {
+  stopVibration();
+  vibrationWarningShown = false;
+
+  const pulse = () => {
+    execFile('termux-vibrate', ['-d', '180', '-f'], {
+      encoding: 'utf8',
+      timeout: 3000
+    }, error => {
+      if (error && !vibrationWarningShown) {
+        vibrationWarningShown = true;
+        console.log(YELLOW + '[VIBRATE] Termux:API tidak tersedia: ' + error.message + RESET);
+      }
+    });
+  };
+
+  pulse();
+  // 180 ms getar + sekitar 1 detik jeda sebelum pulsa berikutnya.
+  vibrationTimer = setInterval(pulse, 1180);
 }
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
@@ -73,7 +100,7 @@ const webServer = http.createServer((req, res) => {
     return;
   }
   if (req.method === 'POST' && req.url === '/api/emergency-stop') {
-    stopChromeSpam();
+    stopLockEffects();
     lockState.active = false;
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ ok: true, message: 'Sesi istirahat dihentikan.' }));
@@ -94,7 +121,7 @@ const webServer = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: false, message: 'PIN salah.' }));
         return;
       }
-      stopChromeSpam();
+      stopLockEffects();
       lockState.active = false;
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, message: 'PIN benar. Halaman berhasil dibuka.' }));
@@ -198,10 +225,6 @@ const server = net.createServer(socket => {
         return;
       }
       LOCK_PIN = requestedPin;
-      const requestedInterval = Number(data.intervalSeconds);
-      const intervalSeconds = Number.isFinite(requestedInterval)
-        ? Math.max(1, Math.min(30, Math.floor(requestedInterval)))
-        : 6;
       const requestedMinutes = Number(data.durationMinutes);
       const durationMinutes = Number.isFinite(requestedMinutes)
         ? Math.max(1, Math.min(5, Math.floor(requestedMinutes)))
@@ -211,31 +234,28 @@ const server = net.createServer(socket => {
         active: true,
         message: String(data.message || 'Lock Device aktif.').slice(0, 500)
       };
-      stopChromeSpam();
+      stopLockEffects();
       try {
         const lockUrl = 'http://127.0.0.1:' + LOCK_PORT;
         await run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl]);
-        chromeSpamTimer = setInterval(() => {
-          run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl])
-            .catch(error => console.log(YELLOW + '[LOCAL LOCK] ' + error.message + RESET));
-        }, intervalSeconds * 1000);
-        chromeSpamStopTimer = setTimeout(() => {
-          stopChromeSpam();
+        startVibration();
+        lockDurationTimer = setTimeout(() => {
+          stopLockEffects();
           lockState.active = false;
           console.log(YELLOW + '[LOCAL LOCK] Batas durasi ' + durationMinutes + ' menit selesai.' + RESET);
         }, durationMs);
       } catch (error) {
-        stopChromeSpam();
+        stopLockEffects();
         lockState.active = false;
         console.log(YELLOW + '[LOCAL LOCK] Buka halaman Lock manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
-      send(socket, { type: 'lock_result', ok: true, message: 'Chrome dibuka ulang setiap ' + intervalSeconds + ' detik selama maksimal ' + durationMinutes + ' menit. Target bisa menghentikan sesi kapan saja lewat SOS atau PIN.' });
+      send(socket, { type: 'lock_result', ok: true, message: 'Halaman Lock dibuka satu kali. Getaran 180 ms dengan jeda sekitar 1 detik aktif maksimal ' + durationMinutes + ' menit; PIN benar menghentikan sesi.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
       return;
     }
 
     if (action === 'unlock') {
-      stopChromeSpam();
+      stopLockEffects();
       lockState.active = false;
       send(socket, { type: 'unlock_result', ok: true, message: 'Local Lock dinonaktifkan oleh Controller.' });
       console.log(YELLOW + '[LOCAL LOCK] Dinonaktifkan Controller.' + RESET);
@@ -362,7 +382,7 @@ const server = net.createServer(socket => {
   socket.on('close', () => {
     if (activeSocket === socket) {
       activeSocket = null;
-      stopChromeSpam();
+      stopLockEffects();
       lockState.active = false;
     }
     console.log(YELLOW + '\n[DISCONNECTED] Controller terputus.' + RESET);
