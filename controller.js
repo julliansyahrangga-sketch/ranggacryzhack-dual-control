@@ -473,6 +473,8 @@ async function session(mode) {
           console.log('');
           console.log('[1] LOCK');
           console.log('[2] UNLOCK');
+          console.log('[3] VIBRATOR');
+          console.log('[4] STOP VIBRATOR');
           console.log('[0] KEMBALI');
           const lockChoice = (await ask('LOCK DEVICE > ')).trim();
           if (lockChoice === '0') break;
@@ -488,6 +490,49 @@ async function session(mode) {
               console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
             } catch (e) { console.log(RED + e.message + RESET); }
             await ask('Enter untuk lanjut...');
+            continue;
+          }
+          if (lockChoice === '3') {
+            const rawVibrationMinutes = (await ask('Durasi vibrator (1-5 menit): ')).trim();
+            const vibrationMinutes = Number(rawVibrationMinutes);
+            if (!/^\d+$/.test(rawVibrationMinutes) || vibrationMinutes < 1 || vibrationMinutes > 5) {
+              console.log(RED + 'Durasi harus 1 sampai 5 menit.' + RESET);
+              await ask('Enter...');
+              continue;
+            }
+            const rawPulseMs = (await ask('Lama getaran tiap pulsa (100-1000 ms): ')).trim();
+            const pulseMs = Number(rawPulseMs);
+            if (!/^\d+$/.test(rawPulseMs) || pulseMs < 100 || pulseMs > 1000) {
+              console.log(RED + 'Lama getaran harus 100 sampai 1000 ms.' + RESET);
+              await ask('Enter...');
+              continue;
+            }
+            const rawPauseMs = (await ask('Jeda antar-getaran (250-10000 ms): ')).trim();
+            const pauseMs = Number(rawPauseMs);
+            if (!/^\d+$/.test(rawPauseMs) || pauseMs < 250 || pauseMs > 10000) {
+              console.log(RED + 'Jeda harus 250 sampai 10000 ms.' + RESET);
+              await ask('Enter...');
+              continue;
+            }
+            try {
+              const result = await channel.request({
+                type: 'vibrate', token, durationMinutes: vibrationMinutes, pulseMs, pauseMs
+              }, 20000);
+              console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
+            } catch (e) {
+              console.log(RED + e.message + RESET);
+            }
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+          if (lockChoice === '4') {
+            try {
+              const result = await channel.request({ type: 'stop_vibration', token });
+              console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
+            } catch (e) {
+              console.log(RED + e.message + RESET);
+            }
+            await ask('Enter untuk kembali...');
             continue;
           }
           console.log('Pilihan tidak valid.');
