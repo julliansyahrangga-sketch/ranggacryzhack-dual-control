@@ -119,6 +119,20 @@ Setujui pairing dengan mengetik `y` di Termux Target. Setelah terhubung, menu fi
 
 Di halaman LOCK DEVICE, Controller tetap berada pada layar status dan menyediakan pilihan LOCK dan UNLOCK. PIN Lock empat digit berbeda dari PIN Pairing enam digit.
 
+Menu LOCK DEVICE juga menyediakan VIBRATOR pada HP Target:
+- Durasi otomatis: 1–5 menit.
+- Lama setiap getaran: 100–1000 ms.
+- Jeda antar-getaran: 250–10000 ms.
+- Pilih STOP VIBRATOR untuk menghentikan lebih awal. Getaran juga berhenti saat Controller terputus atau Receiver dihentikan.
+
+Fitur ini membutuhkan aplikasi Termux:API pada HP Target dan paket berikut di Termux Target:
+
+```bash
+pkg install termux-api
+```
+
+Pastikan aplikasi Termux:API terpasang dari sumber yang sama dengan Termux.
+
 Pada HP Target, Chrome membuka halaman `http://127.0.0.1:47833`. Halaman menampilkan pesan Controller, kolom PIN, serta tombol darurat RGB `RanggaCryzSOS`. PIN yang benar atau tombol SOS menghentikan sesi Lock. Chrome dibuka ulang sesuai interval yang dipilih (1–30 detik), selama durasi sesi yang dipilih (maksimal 5 menit). Target dapat menghentikan sesi melalui SOS atau PIN, dan sesi berhenti jika Controller terputus.
 
 Daftar aplikasi difilter di HP Target agar aplikasi sistem bawaan tidak ikut ditampilkan.
