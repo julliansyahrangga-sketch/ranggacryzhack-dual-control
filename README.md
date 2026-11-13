@@ -19,6 +19,9 @@ Ikuti langkah sesuai peran HP. **Lakukan instalasi pada kedua HP**, satu sebagai
 2. Buka Termux dan pastikan internet aktif.
 3. Jangan tutup Termux selama program sedang digunakan.
 4. Kedua HP harus berada pada jaringan yang sama. Bisa memakai Wi-Fi yang sama atau Controller tersambung ke hotspot Target.
+5. **HP Target saja** memerlukan aplikasi pendamping Termux:API dan paket `termux-api` di Termux. Unduh aplikasi pendamping dari [F-Droid resmi](https://f-droid.org/packages/com.termux.api/). Termux dan Termux:API harus berasal dari sumber instalasi yang sama (keduanya F-Droid). HP Controller tidak memerlukan Termux:API.
+
+**Tentang Google Play Protect:** jangan mematikan atau melewati perlindungan untuk memasang APK. Jika instalasi diblokir, batalkan dulu, pastikan halaman unduhan benar-benar `f-droid.org`, periksa nama paket `com.termux.api`, dan jangan gunakan APK dari situs mirror atau tautan tidak dikenal. Jika tetap diblokir, biarkan perlindungan aktif dan jangan lanjutkan instalasi.
 
 > Jika perintah `pkg` tidak dikenali, pastikan kamu menjalankan perintah di aplikasi Termux, bukan terminal aplikasi lain.
 
@@ -36,7 +39,7 @@ cd ranggacryzhack-dual-control
 Jika muncul pesan bahwa folder sudah ada, jangan clone ulang ke folder yang sama. Masuk ke folder yang sudah ada:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 ```
 
 Periksa file proyek:
@@ -54,11 +57,17 @@ Lakukan bagian ini hanya di HP yang akan membuka aplikasi.
 Pastikan Termux sedang berada di folder repository, lalu jalankan:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 bash install-receiver.sh
 ```
 
-Installer akan memasang Node.js dan memeriksa file Receiver. Setelah selesai, jalankan:
+Installer akan memasang Node.js, paket perintah `termux-api`, dan memeriksa file Receiver. Pastikan aplikasi pendamping Termux:API dari F-Droid juga sudah terpasang di HP Target. Tes getar singkat:
+
+```bash
+termux-vibrate -d 500 -f
+```
+
+Jika HP bergetar, jalankan Receiver:
 
 ```bash
 node receiver.js
@@ -76,7 +85,7 @@ Catat IP dan PIN tersebut. Biarkan Receiver tetap berjalan. Jangan tutup sesi Te
 Di HP Controller, buka Termux dan jalankan:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 bash install-controller.sh
 ```
 
@@ -114,12 +123,12 @@ Saat Controller dijalankan, masukkan:
 Setujui pairing dengan mengetik `y` di Termux Target. Setelah terhubung, menu fitur akan tampil:
 
 - `1` — OPEN APP. Menampilkan daftar aplikasi Target.
-- `2` — LOCK DEVICE. Masukkan pesan, PIN Lock baru empat digit, dan interval Chrome (1–30 detik) dan durasi sesi (1–5 menit).
+- `2` — LOCK DEVICE. Masukkan pesan, PIN Lock baru empat digit, dan durasi VIBRATE (1–5 menit).
 - `0` — putuskan koneksi.
 
 Di halaman LOCK DEVICE, Controller tetap berada pada layar status dan menyediakan pilihan LOCK dan UNLOCK. PIN Lock empat digit berbeda dari PIN Pairing enam digit.
 
-Pada HP Target, Chrome membuka halaman `http://127.0.0.1:47833`. Halaman menampilkan pesan Controller, kolom PIN, serta tombol darurat RGB `RanggaCryzSOS`. PIN yang benar atau tombol SOS menghentikan sesi Lock. Chrome dibuka ulang sesuai interval yang dipilih (1–30 detik), selama durasi sesi yang dipilih (maksimal 5 menit). Target dapat menghentikan sesi melalui SOS atau PIN, dan sesi berhenti jika Controller terputus.
+Pada HP Target, halaman `http://127.0.0.1:47833` dibuka satu kali. Halaman menampilkan pesan Controller dan kolom PIN. Selama sesi aktif, Termux:API memberi getaran singkat 180 ms dengan jeda sekitar 1 detik. Durasi dapat dipilih 1–5 menit. PIN benar, UNLOCK dari Controller, durasi habis, atau Controller terputus akan menghentikan getaran dan sesi.
 
 Daftar aplikasi difilter di HP Target agar aplikasi sistem bawaan tidak ikut ditampilkan.
 
@@ -131,13 +140,13 @@ Tidak perlu clone atau instal ulang.
 
 **Di HP Target:**
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 node receiver.js
 ```
 
 **Di HP Controller:**
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 node controller.js
 ```
 
@@ -150,7 +159,7 @@ Gunakan IP dan PIN terbaru yang ditampilkan Receiver.
 Hentikan program yang sedang berjalan dengan `CTRL + C`, lalu jalankan di masing-masing HP:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 git pull
 ```
 
@@ -166,11 +175,7 @@ node receiver.js
 node controller.js
 ```
 
-Jika folder hasil clone kamu memakai nama lain, misalnya `dual-control-baru`, ganti perintah `cd` menjadi:
-
-```bash
-cd ~/dual-control-baru
-```
+Jika nama folder hasil clone berbeda, gunakan nama folder yang benar pada setiap perintah `cd`.
 
 ---
 
@@ -179,14 +184,14 @@ cd ~/dual-control-baru
 1. Jalankan Receiver di HP Target. Catat IP dan port `47831`, lalu biarkan Termux berjalan.
 2. Dari Controller, masukkan IP Target, port, dan PIN Pairing enam digit.
 3. Setelah pairing disetujui, pilih `2` untuk LOCK DEVICE.
-4. Masukkan pesan, PIN Lock baru empat digit, dan interval Chrome (1–30 detik) dan durasi sesi (1–5 menit).
+4. Masukkan pesan, PIN Lock baru empat digit, dan durasi VIBRATE (1–5 menit).
 5. Controller tetap menampilkan layar LOCK DEVICE dengan pilihan LOCK dan UNLOCK.
-6. Halaman lokal di Chrome Target menampilkan pesan, kolom PIN, dan tombol RGB `RanggaCryzSOS`.
-7. PIN benar, tombol SOS, atau perintah UNLOCK dari Controller menghentikan sesi Lock.
+6. Halaman lokal di browser Target menampilkan pesan dan kolom PIN.
+7. PIN benar atau perintah UNLOCK dari Controller menghentikan getaran dan sesi Lock.
 
 Halaman `lock.html` terpisah dari `receiver.js`, tetapi disajikan oleh server HTTP Receiver pada port lokal `47833`. Keduanya berkomunikasi melalui endpoint `/api/state`, `/api/unlock`, dan `/api/emergency-stop`.
 
-Chrome dibuka ulang sesuai interval 1–30 detik dan hanya selama durasi sesi yang dimasukkan (maksimal 5 menit). Sesi berhenti melalui SOS, PIN, UNLOCK Controller, atau saat Controller terputus. Fitur ini bukan Android Kiosk/Device Owner dan tidak mencegah pemilik Target menutup browser atau menghentikan Receiver.
+Halaman Lock dibuka satu kali. Getaran singkat berlangsung berkala dengan jeda sekitar 1 detik, maksimal selama durasi yang dipilih (1–5 menit). Sesi berhenti melalui PIN benar, UNLOCK Controller, durasi habis, atau saat Controller terputus. Fitur ini bukan Android Kiosk/Device Owner dan tidak mencegah pemilik Target menutup browser atau menghentikan Receiver.
 
 ## TROUBLESHOOTING
 
@@ -195,7 +200,7 @@ Chrome dibuka ulang sesuai interval 1–30 detik dan hanya selama durasi sesi ya
 Masuk ke folder repository terlebih dahulu:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 ls
 ```
 
@@ -206,7 +211,7 @@ Jika folder belum ada, ulangi proses clone pada Langkah 1.
 Pasang Node.js melalui installer sesuai peran:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 bash install-receiver.sh
 ```
 
@@ -236,7 +241,15 @@ Jika masih gagal, kirim pesan error lengkap untuk diperiksa. Jangan hapus folder
 
 Gunakan PIN terbaru yang sedang tampil di HP Target. Pastikan pemilik Target menyetujui permintaan dengan mengetik `y`.
 
-### 6. Aplikasi tidak terbuka
+### 6. Getaran tidak berfungsi
+
+- Pastikan aplikasi pendamping **Termux:API** terpasang di HP Target dari F-Droid.
+- Pastikan paket perintah sudah terpasang di Termux Target: `pkg install termux-api`.
+- Uji langsung dengan `termux-vibrate -d 500 -f`.
+- Jika perintah tidak ditemukan, jalankan `which termux-vibrate`.
+- Jika Play Protect memblokir APK, jangan mematikan perlindungan atau memasang APK dari sumber lain. Periksa sumber F-Droid dan batalkan instalasi jika sumbernya tidak dapat diverifikasi.
+
+### 7. Aplikasi tidak terbuka
 
 Tidak semua aplikasi yang muncul di daftar pasti bisa dibuka oleh Dual Control. Daftar package hanya menunjukkan bahwa paket aplikasi terpasang; itu **bukan jaminan** bahwa Android menyediakan Activity launcher yang bisa dipanggil dari program ini.
 
@@ -276,7 +289,8 @@ Beberapa penyebab aplikasi gagal dibuka:
 
 - `receiver.js` — program di HP Target.
 - `controller.js` — program di HP Controller.
-- `install-receiver.sh` — installer kebutuhan Receiver.
+- `install-receiver.sh` — installer Node.js dan paket perintah Termux:API untuk Receiver.
+- Aplikasi pendamping Termux:API — dipasang terpisah di HP Target dari F-Droid.
 - `install-controller.sh` — installer kebutuhan Controller.
 
 **Repository:** https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control
