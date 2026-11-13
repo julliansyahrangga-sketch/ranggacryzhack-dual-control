@@ -27,12 +27,9 @@ button:active{transform:scale(.98)}
 #result{min-height:18px;text-align:center;font-size:12px;margin-top:12px;color:#ffb0b0;line-height:1.5}
 .brand{text-align:right;margin-top:22px;color:#00ff99;text-shadow:0 0 9px #00ff99;font-size:12px;font-weight:bold}
 .foot{text-align:center;color:#52636d;font-size:10px;margin-top:18px}
-.emergency{position:fixed;top:10px;right:10px;z-index:9999;width:auto;margin:0;padding:11px 14px;border:1px solid #00ff9d;border-radius:10px;background:#050b10;color:#fff;font-size:11px;font-weight:900;letter-spacing:1px;text-shadow:0 0 6px #00ff9d,0 0 12px #00aaff;box-shadow:0 0 8px #00ff9d,0 0 16px #a000ff;animation:rgb 2s linear infinite}
-@keyframes rgb{0%{border-color:#00ff9d;box-shadow:0 0 8px #00ff9d}33%{border-color:#00aaff;box-shadow:0 0 8px #00aaff}66%{border-color:#ff00dd;box-shadow:0 0 8px #ff00dd}100%{border-color:#00ff9d;box-shadow:0 0 8px #00ff9d}}
 </style>
 </head>
 <body>
-<button class="emergency" id="emergencyStop" type="button">EMERGENCY STOP</button>
 <main class="card">
  <div class="top"><div class="logo">RANGGACRYZHACK</div><div class="status" id="status">● CONNECTING</div></div>
  <h1>LOCK DEVICE</h1>
@@ -72,17 +69,6 @@ async function refresh(){
   $('message').textContent='Receiver tidak terhubung. Periksa server Termux.';
  }
 }
-$('emergencyStop').addEventListener('click',async()=>{
- if(!confirm('Gunakan RanggaCryzSOS untuk menghentikan sesi Lock Device?'))return;
- busy=true;$('result').textContent='Menghentikan sesi...';
- try{
-  const r=await fetch('/api/emergency-stop',{method:'POST'});
-  const d=await r.json();
-  $('result').textContent=d.message||'Sesi dihentikan.';
-  await refresh();
- }catch{$('result').textContent='Receiver tidak dapat dijangkau.';}
- finally{busy=false;}
-});
 $('unlockForm').addEventListener('submit',async e=>{
  e.preventDefault();busy=true;$('result').textContent='Memeriksa PIN...';
  try{
