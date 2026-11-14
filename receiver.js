@@ -351,8 +351,8 @@ const server = net.createServer(socket => {
       const durationMinutes = Number(data.durationMinutes);
       const intervalMs = Number(data.intervalMs);
       if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5 ||
-          !Number.isInteger(intervalMs) || intervalMs < 1000 || intervalMs > 20000) {
-        send(socket, { type: 'flashlight_result', ok: false, message: 'Pengaturan tidak valid. Durasi 1-5 menit dan interval 1000-20000 ms.' });
+          !Number.isInteger(intervalMs) || intervalMs < 800 || intervalMs > 20000) {
+        send(socket, { type: 'flashlight_result', ok: false, message: 'Pengaturan tidak valid. Durasi 1-5 menit dan interval 800-20000 ms.' });
         return;
       }
       try {
