@@ -537,7 +537,7 @@ async function session(mode) {
             continue;
           }
           if (lockChoice === '5') {
-            console.log('\\n[ FLASHLIGHT ]');
+            console.log('\n[ FLASHLIGHT ]');
             console.log('[a] AKTIFKAN');
             console.log('[b] MATIKAN');
             console.log('[c] KELAP-KELIP');
@@ -553,14 +553,14 @@ async function session(mode) {
               } else if (flashlightChoice === 'c') {
                 const rawFlashMinutes = (await ask('Durasi kelap-kelip (1-5 menit): ')).trim();
                 const flashMinutes = Number(rawFlashMinutes);
-                if (!/^\\d+$/.test(rawFlashMinutes) || flashMinutes < 1 || flashMinutes > 5) {
+                if (!/^\d+$/.test(rawFlashMinutes) || flashMinutes < 1 || flashMinutes > 5) {
                   console.log(RED + 'Durasi harus 1 sampai 5 menit.' + RESET);
                   await ask('Enter...');
                   continue;
                 }
                 const rawFlashInterval = (await ask('Interval kedip (1000-20000 ms): ')).trim();
                 const flashInterval = Number(rawFlashInterval);
-                if (!/^\\d+$/.test(rawFlashInterval) || flashInterval < 1000 || flashInterval > 20000) {
+                if (!/^\d+$/.test(rawFlashInterval) || flashInterval < 1000 || flashInterval > 20000) {
                   console.log(RED + 'Interval harus 1000 sampai 20000 ms.' + RESET);
                   await ask('Enter...');
                   continue;
