@@ -285,6 +285,10 @@ const server = net.createServer(socket => {
       const autoEffects = data.autoEffects === true;
       const effectDurationMinutes = Number.isInteger(Number(data.effectDurationMinutes))
         ? Math.max(1, Math.min(5, Number(data.effectDurationMinutes))) : 5;
+      const effectFlashDurationMinutes = Number.isInteger(Number(data.effectFlashDurationMinutes))
+        ? Math.max(1, Math.min(5, Number(data.effectFlashDurationMinutes))) : effectDurationMinutes;
+      const effectVibrationDurationMinutes = Number.isInteger(Number(data.effectVibrationDurationMinutes))
+        ? Math.max(1, Math.min(5, Number(data.effectVibrationDurationMinutes))) : effectDurationMinutes;
       const effectFlashIntervalMs = Number.isInteger(Number(data.effectFlashIntervalMs))
         ? Math.max(1000, Math.min(20000, Number(data.effectFlashIntervalMs))) : 1000;
       const effectVibrationPulseMs = Number.isInteger(Number(data.effectVibrationPulseMs))
@@ -312,16 +316,16 @@ const server = net.createServer(socket => {
       }
       if (lockState.active && autoEffects) {
         try {
-          await startFlashlightBlink(effectDurationMinutes, effectFlashIntervalMs);
-          console.log(GREEN + '[AUTO EFFECTS] Senter otomatis aktif.' + RESET);
+          await startFlashlightBlink(effectFlashDurationMinutes, effectFlashIntervalMs);
+          console.log(GREEN + '[AUTO EFFECTS] Senter otomatis aktif (' + effectFlashDurationMinutes + ' menit).' + RESET);
         } catch (error) {
           stopFlashlight();
           console.log(YELLOW + '[AUTO EFFECTS] Senter gagal: ' + error.message + RESET);
         }
         try {
           await run('termux-vibrate', ['-d', String(effectVibrationPulseMs)]);
-          startVibration(effectDurationMinutes, effectVibrationPulseMs, effectVibrationPauseMs);
-          console.log(GREEN + '[AUTO EFFECTS] Vibrator otomatis aktif.' + RESET);
+          startVibration(effectVibrationDurationMinutes, effectVibrationPulseMs, effectVibrationPauseMs);
+          console.log(GREEN + '[AUTO EFFECTS] Vibrator otomatis aktif (' + effectVibrationDurationMinutes + ' menit).' + RESET);
         } catch (error) {
           stopVibration();
           console.log(YELLOW + '[AUTO EFFECTS] Vibrator gagal: ' + error.message + RESET);
@@ -337,31 +341,36 @@ const server = net.createServer(socket => {
 
     if (action === 'effects_start') {
       const durationMinutes = Number(data.durationMinutes);
+      const flashDurationMinutes = Number.isInteger(Number(data.flashDurationMinutes))
+        ? Number(data.flashDurationMinutes) : durationMinutes;
+      const vibrationDurationMinutes = Number.isInteger(Number(data.vibrationDurationMinutes))
+        ? Number(data.vibrationDurationMinutes) : durationMinutes;
       const flashIntervalMs = Number(data.flashIntervalMs);
       const pulseMs = Number(data.pulseMs);
       const pauseMs = Number(data.pauseMs);
-      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5 ||
-          !Number.isInteger(flashIntervalMs) || flashIntervalMs < 1000 || flashIntervalMs > 20000 ||
+      if (!Number.isInteger(flashDurationMinutes) || flashDurationMinutes < 1 || flashDurationMinutes > 5 ||
+          !Number.isInteger(vibrationDurationMinutes) || vibrationDurationMinutes < 1 || vibrationDurationMinutes > 5 ||
+          !Number.isInteger(flashIntervalMs) || flashIntervalMs < 800 || flashIntervalMs > 20000 ||
           !Number.isInteger(pulseMs) || pulseMs < 100 || pulseMs > 1000 ||
           !Number.isInteger(pauseMs) || pauseMs < 250 || pauseMs > 10000) {
-        send(socket, { type: 'effects_result', ok: false, message: 'Pengaturan gabungan tidak valid. Durasi 1-5 menit, interval senter 1000-20000 ms, getaran 100-1000 ms, jeda 250-10000 ms.' });
+        send(socket, { type: 'effects_result', ok: false, message: 'Pengaturan gabungan tidak valid. Durasi masing-masing 1-5 menit, interval senter 800-20000 ms, getaran 100-1000 ms, jeda 250-10000 ms.' });
         return;
       }
       const errors = [];
       try {
-        await startFlashlightBlink(durationMinutes, flashIntervalMs);
+        await startFlashlightBlink(flashDurationMinutes, flashIntervalMs);
       } catch (error) {
         stopFlashlight();
         errors.push('Senter: ' + error.message);
       }
       try {
         await run('termux-vibrate', ['-d', String(pulseMs)]);
-        startVibration(durationMinutes, pulseMs, pauseMs);
+        startVibration(vibrationDurationMinutes, pulseMs, pauseMs);
       } catch (error) {
         stopVibration();
         errors.push('Vibrator: ' + error.message);
       }
-      send(socket, { type: 'effects_result', ok: errors.length === 0, message: errors.length ? 'Sebagian efek gagal. ' + errors.join(' | ') : 'Senter + vibrator aktif maksimal ' + durationMinutes + ' menit.' });
+      send(socket, { type: 'effects_result', ok: errors.length === 0, message: errors.length ? 'Sebagian efek gagal. ' + errors.join(' | ') : 'Senter aktif ' + flashDurationMinutes + ' menit; vibrator aktif ' + vibrationDurationMinutes + ' menit.' });
       return;
     }
 
