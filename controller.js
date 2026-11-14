@@ -58,7 +58,7 @@ async function askConfigNumber(label, min, max, current) {
   const raw = (await ask(label + ' [' + current + ']: ')).trim();
   if (!raw) return current;
   const value = Number(raw);
-  if (!/^\\d+$/.test(raw) || value < min || value > max) {
+  if (!/^\d+$/.test(raw) || value < min || value > max) {
     console.log(RED + 'Nilai harus ' + min + ' sampai ' + max + '.' + RESET);
     return null;
   }
@@ -124,7 +124,7 @@ async function chooseConfigIndex(promptText) {
   renderConfigList();
   if (!configStore.configs.length) return -1;
   const raw = (await ask(promptText)).trim();
-  if (!/^\\d+$/.test(raw)) return -1;
+  if (!/^\d+$/.test(raw)) return -1;
   const index = Number(raw) - 1;
   return index >= 0 && index < configStore.configs.length ? index : -1;
 }
