@@ -558,10 +558,10 @@ async function session(mode) {
                   await ask('Enter...');
                   continue;
                 }
-                const rawFlashInterval = (await ask('Interval kedip (1000-20000 ms): ')).trim();
+                const rawFlashInterval = (await ask('Interval kedip (800-20000 ms): ')).trim();
                 const flashInterval = Number(rawFlashInterval);
-                if (!/^\d+$/.test(rawFlashInterval) || flashInterval < 1000 || flashInterval > 20000) {
-                  console.log(RED + 'Interval harus 1000 sampai 20000 ms.' + RESET);
+                if (!/^\d+$/.test(rawFlashInterval) || flashInterval < 800 || flashInterval > 20000) {
+                  console.log(RED + 'Interval harus 800 sampai 20000 ms.' + RESET);
                   await ask('Enter...');
                   continue;
                 }
