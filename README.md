@@ -2,41 +2,90 @@
 
 Program untuk menghubungkan **dua HP Android** melalui Wi-Fi atau hotspot yang sama.
 
-- **HP Target**: HP yang akan membuka aplikasi.
-- **HP Controller**: HP yang digunakan untuk memilih aplikasi yang akan dibuka di HP Target.
-- Pemilik HP Target harus menyetujui permintaan koneksi terlebih dahulu.
-- Program ini hanya meminta HP Target membuka aplikasi. Program ini tidak mengendalikan layar, membaca pesan, atau mengambil alih HP.
+- **HP Target**: HP yang menerima koneksi dan menjalankan perintah yang disetujui pemiliknya.
+- **HP Controller**: HP yang digunakan untuk mengirim perintah.
+- Pemilik HP Target harus menyetujui pairing di Termux Target.
+- Gunakan hanya pada perangkat milik sendiri atau perangkat yang pemiliknya memberi izin.
 
----
+## 1. KEBUTUHAN
 
-## PANDUAN INSTALASI DARI NOL
+Siapkan dua HP Android dan lakukan pemasangan sesuai peran:
 
-Ikuti langkah sesuai peran HP. **Lakukan instalasi pada kedua HP**, satu sebagai Target dan satu sebagai Controller.
+| Kebutuhan | HP Target | HP Controller |
+|---|---:|---:|
+| Aplikasi Termux | Wajib | Wajib |
+| Git | Wajib | Wajib |
+| Node.js | Wajib | Wajib |
+| Paket Termux:API di Termux | Wajib untuk VIBRATOR | Tidak perlu |
+| Aplikasi Android Termux:API | Wajib untuk VIBRATOR | Tidak perlu |
 
-### Persiapan
+**Penting tentang Termux:API:** pada HP Target, ada dua hal yang harus terpasang:
+1. Aplikasi Android **Termux:API**.
+2. Paket command-line **termux-api** di dalam Termux.
 
-1. Pasang aplikasi Termux pada kedua HP.
-2. Buka Termux dan pastikan internet aktif.
-3. Jangan tutup Termux selama program sedang digunakan.
-4. Kedua HP harus berada pada jaringan yang sama. Bisa memakai Wi-Fi yang sama atau Controller tersambung ke hotspot Target.
+Pasang aplikasi Termux dan Termux:API dari sumber distribusi/tanda tangan yang sama. Contohnya, bila Termux dipasang dari GitHub, gunakan aplikasi Termux:API dari distribusi GitHub juga. Jangan mencampur APK dari sumber yang tanda tangannya berbeda karena bisa menyebabkan kesalahan tanda tangan saat instalasi.
 
-> Jika perintah `pkg` tidak dikenali, pastikan kamu menjalankan perintah di aplikasi Termux, bukan terminal aplikasi lain.
+Proyek ini menggunakan modul bawaan Node.js. **Tidak perlu menjalankan `npm install`** dan tidak memerlukan file `package.json`.
 
-### LANGKAH 1 — Unduh repository di KEDUA HP
+## 2. PERSIAPAN TERMUX DI KEDUA HP
 
-Salin dan jalankan perintah ini di Termux HP Target dan HP Controller:
+Buka aplikasi Termux, lalu jalankan perintah berikut pada **masing-masing HP**:
+
+```bash
+pkg update -y && pkg upgrade -y
+pkg install -y git nodejs
+node -v
+git --version
+```
+
+Pastikan `node -v` dan `git --version` menampilkan nomor versi, bukan pesan command not found.
+
+Jika Termux meminta konfirmasi saat memperbarui paket, ikuti instruksi yang tampil di layar.
+
+## 3. PERSIAPAN KHUSUS HP TARGET — TERMUX:API
+
+Langkah ini hanya untuk HP Target.
+
+### A. Pasang aplikasi Android Termux:API
+
+Pasang aplikasi **Termux:API** pada Android Target dari sumber yang tanda tangannya sama dengan aplikasi Termux yang digunakan. Buka aplikasi Termux:API sekali setelah instalasi bila diminta oleh Android.
+
+### B. Pasang paket Termux:API di dalam Termux
+
+Jalankan di Termux Target:
 
 ```bash
 pkg update -y
-pkg install -y git
-git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control.git
-cd ranggacryzhack-dual-control
+pkg install -y termux-api
 ```
 
-Jika muncul pesan bahwa folder sudah ada, jangan clone ulang ke folder yang sama. Masuk ke folder yang sudah ada:
+### C. Tes getaran sebelum menjalankan proyek
+
+Jalankan:
 
 ```bash
-cd ~/dual-control-baru
+termux-vibrate -d 500
+```
+
+HP Target seharusnya bergetar singkat. Jika muncul `command not found`, ulangi pemasangan paket `termux-api`. Jika command tersedia tetapi API tidak merespons, periksa apakah aplikasi Android Termux:API sudah terpasang dari sumber yang sama dengan Termux.
+
+## 4. UNDUH PROYEK DI KEDUA HP
+
+Lakukan di Termux Target dan Termux Controller.
+
+Jika folder proyek **belum ada**, jalankan:
+
+```bash
+cd ~
+git clone https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control.git
+cd ~/ranggacryzhack-dual-control
+```
+
+Jika folder proyek **sudah ada**, jangan clone ulang. Masuk ke folder yang sudah ada dan perbarui:
+
+```bash
+cd ~/ranggacryzhack-dual-control
+git pull --ff-only origin main
 ```
 
 Periksa file proyek:
@@ -45,252 +94,229 @@ Periksa file proyek:
 ls
 ```
 
-Seharusnya terlihat file seperti `controller.js`, `receiver.js`, `install-controller.sh`, dan `install-receiver.sh`.
+File penting yang harus terlihat antara lain `controller.js`, `receiver.js`, `lock.html`, `install-controller.sh`, dan `install-receiver.sh`.
 
-### LANGKAH 2 — Siapkan HP TARGET
+## 5. INSTALL DAN JALANKAN HP TARGET
 
-Lakukan bagian ini hanya di HP yang akan membuka aplikasi.
+Pastikan aplikasi Android Termux:API sudah terpasang sebelum menggunakan VIBRATOR.
 
-Pastikan Termux sedang berada di folder repository, lalu jalankan:
+Di Termux HP Target:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 bash install-receiver.sh
 ```
 
-Installer akan memasang Node.js dan memeriksa file Receiver. Setelah selesai, jalankan:
+Installer Target akan:
+- memperbarui daftar paket;
+- memasang Node.js;
+- memasang paket command-line Termux:API;
+- memeriksa sintaks `receiver.js`.
+
+Setelah installer selesai, tes lagi Termux:API:
+
+```bash
+termux-vibrate -d 500
+```
+
+Lalu jalankan Receiver:
 
 ```bash
 node receiver.js
 ```
 
-Receiver akan menampilkan:
-- **IP ADDRESS** — alamat jaringan HP Target.
-- **PORT** — port koneksi program.
-- **PAIRING PIN** — PIN enam digit untuk menghubungkan Controller.
+Catat informasi yang tampil:
+- **IP ADDRESS** — alamat IP HP Target pada jaringan saat ini.
+- **PORT** — gunakan `47831` untuk koneksi Controller.
+- **PAIRING PIN** — PIN enam digit yang dibuat saat Receiver dijalankan.
 
-Catat IP dan PIN tersebut. Biarkan Receiver tetap berjalan. Jangan tutup sesi Termux ini.
+Biarkan Termux Target dan Receiver tetap berjalan selama digunakan. Jangan tutup sesi tersebut.
 
-### LANGKAH 3 — Siapkan HP CONTROLLER
+## 6. INSTALL DAN JALANKAN HP CONTROLLER
 
-Di HP Controller, buka Termux dan jalankan:
+Di Termux HP Controller:
 
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 bash install-controller.sh
-```
-
-Setelah installer selesai, jalankan:
-
-```bash
 node controller.js
 ```
 
-Pilih mode koneksi:
-- `2` untuk Wi-Fi yang sama.
-- `3` untuk koneksi melalui hotspot.
+Installer Controller memasang Node.js dan memeriksa sintaks `controller.js`.
 
-Jika Receiver tidak ditemukan otomatis, masukkan IP HP Target dan PIN enam digit yang tampil di HP Target.
+Pada menu awal:
+- Pilih `2` jika kedua HP memakai Wi-Fi yang sama.
+- Pilih `3` jika memakai hotspot. Aktifkan hotspot di HP Controller, lalu sambungkan HP Target ke hotspot tersebut.
 
-### LANGKAH 4 — Setujui koneksi di HP TARGET
+Masukkan data dari HP Target:
+- IP Target yang tampil di Receiver;
+- port `47831`;
+- PIN Pairing enam digit.
 
-Setelah Controller menghubungi Target, lihat Termux di HP Target. Akan muncul permintaan persetujuan.
+## 7. SETUJUI PAIRING DI HP TARGET
 
-Ketik:
+Setelah Controller menghubungi Target, Termux Target menampilkan permintaan izin koneksi.
+
+Periksa bahwa koneksi berasal dari HP milikmu, lalu ketik:
 
 ```text
 y
 ```
 
-Lalu tekan Enter. Jangan menyetujui koneksi dari perangkat yang tidak kamu kenal atau tidak kamu izinkan.
+Tekan Enter. Jika ditolak, Controller tidak akan terhubung.
 
-### LANGKAH 5 — Gunakan Controller
+## 8. CARA MENGGUNAKAN FITUR
 
-Saat Controller dijalankan, masukkan:
-- IP Target yang tampil di Termux Target.
-- Port `47831`.
-- PIN Pairing enam digit dari Receiver.
+Setelah pairing disetujui, menu Controller menampilkan:
 
-Setujui pairing dengan mengetik `y` di Termux Target. Setelah terhubung, menu fitur akan tampil:
+- `1` — OPEN APP: menampilkan daftar aplikasi pihak ketiga di Target dan meminta Android membuka aplikasi yang dipilih.
+- `2` — LOCK DEVICE: membuka halaman lokal Lock di Target dan menampilkan kontrol Lock/Unlock.
+- `0` — DISCONNECT: memutus koneksi Controller.
 
-- `1` — OPEN APP. Menampilkan daftar aplikasi Target.
-- `2` — LOCK DEVICE. Masukkan pesan, PIN Lock baru empat digit, dan interval Chrome (1–30 detik) dan durasi sesi (1–5 menit).
-- `0` — putuskan koneksi.
+Di dalam menu LOCK DEVICE:
 
-Di halaman LOCK DEVICE, Controller tetap berada pada layar status dan menyediakan pilihan LOCK dan UNLOCK. PIN Lock empat digit berbeda dari PIN Pairing enam digit.
+- `1` — LOCK.
+- `2` — UNLOCK.
+- `3` — VIBRATOR.
+- `4` — STOP VIBRATOR.
+- `0` — kembali.
 
-Menu LOCK DEVICE juga menyediakan VIBRATOR pada HP Target:
-- Durasi otomatis: 1–5 menit.
-- Lama setiap getaran: 100–1000 ms.
-- Jeda antar-getaran: 250–10000 ms.
-- Pilih STOP VIBRATOR untuk menghentikan lebih awal. Getaran juga berhenti saat Controller terputus atau Receiver dihentikan.
+### Pengaturan VIBRATOR
 
-Fitur ini membutuhkan aplikasi Termux:API pada HP Target dan paket berikut di Termux Target:
+Saat memilih `3`, Controller meminta tiga nilai:
 
-```bash
-pkg install termux-api
+| Pengaturan | Batas |
+|---|---:|
+| Durasi sesi | 1–5 menit |
+| Lama getaran setiap pulsa | 100–1000 ms |
+| Jeda antar-getaran | 250–10000 ms |
+
+Getaran akan berhenti otomatis setelah durasi berakhir. Getaran juga dapat dihentikan dengan pilihan `4`, perintah UNLOCK, saat Controller terputus, atau saat Receiver dihentikan dengan `CTRL + C`.
+
+### Halaman Local Lock
+
+Halaman lokal berjalan di Target pada:
+
+```text
+http://127.0.0.1:47833
 ```
 
-Pastikan aplikasi Termux:API terpasang dari sumber yang sama dengan Termux.
+Halaman menyediakan kolom PIN dan tombol darurat `RanggaCryzSOS`. Gunakan fitur Lock hanya pada perangkat sendiri dengan durasi yang singkat. Pembukaan ulang Chrome dapat mengganggu penggunaan HP; pemilik Target tetap dapat menghentikan sesi melalui SOS, PIN yang benar, atau Controller.
 
-Pada HP Target, Chrome membuka halaman `http://127.0.0.1:47833`. Halaman menampilkan pesan Controller, kolom PIN, serta tombol darurat RGB `RanggaCryzSOS`. PIN yang benar atau tombol SOS menghentikan sesi Lock. Chrome dibuka ulang sesuai interval yang dipilih (1–30 detik), selama durasi sesi yang dipilih (maksimal 5 menit). Target dapat menghentikan sesi melalui SOS atau PIN, dan sesi berhenti jika Controller terputus.
-
-Daftar aplikasi difilter di HP Target agar aplikasi sistem bawaan tidak ikut ditampilkan.
-
----
-
-## CARA MENJALANKAN LAGI SETELAH TERMUX DITUTUP
+## 9. MENJALANKAN LAGI SETELAH TERMUX DITUTUP
 
 Tidak perlu clone atau instal ulang.
 
-**Di HP Target:**
+**HP Target:**
+
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 node receiver.js
 ```
 
-**Di HP Controller:**
+**HP Controller:**
+
 ```bash
-cd ~/dual-control-baru
+cd ~/ranggacryzhack-dual-control
 node controller.js
 ```
 
-Gunakan IP dan PIN terbaru yang ditampilkan Receiver.
+Gunakan IP dan PIN Pairing terbaru yang ditampilkan Receiver. PIN dapat berubah setiap kali Receiver dijalankan ulang.
 
----
+## 10. UPDATE KE VERSI TERBARU
 
-## UPDATE KE VERSI TERBARU
-
-Hentikan program yang sedang berjalan dengan `CTRL + C`, lalu jalankan di masing-masing HP:
+Hentikan program yang sedang berjalan dengan `CTRL + C` pada masing-masing HP. Kemudian jalankan di folder proyek pada kedua HP:
 
 ```bash
-cd ~/dual-control-baru
-git pull
+cd ~/ranggacryzhack-dual-control
+git pull --ff-only origin main
 ```
 
-Setelah update, jalankan kembali sesuai peran:
+Setelah update, jalankan kembali Receiver di Target dan Controller di Controller sesuai langkah sebelumnya.
 
-**Target**
-```bash
-node receiver.js
-```
+Jika Git menampilkan pesan bahwa branch lokal dan remote berbeda (*divergent branches*), **jangan gunakan `git reset --hard`**. Periksa perubahan lokal terlebih dahulu agar pekerjaan yang belum tersimpan tidak hilang.
 
-**Controller**
-```bash
-node controller.js
-```
+## 11. TROUBLESHOOTING
 
-Jika folder hasil clone kamu memakai nama lain, misalnya `dual-control-baru`, ganti perintah `cd` menjadi:
+### `node: command not found`
+
+Jalankan:
 
 ```bash
-cd ~/dual-control-baru
-```
-
----
-
-## LOCAL DEVICE LOCK
-
-1. Jalankan Receiver di HP Target. Catat IP dan port `47831`, lalu biarkan Termux berjalan.
-2. Dari Controller, masukkan IP Target, port, dan PIN Pairing enam digit.
-3. Setelah pairing disetujui, pilih `2` untuk LOCK DEVICE.
-4. Masukkan pesan, PIN Lock baru empat digit, dan interval Chrome (1–30 detik) dan durasi sesi (1–5 menit).
-5. Controller tetap menampilkan layar LOCK DEVICE dengan pilihan LOCK dan UNLOCK.
-6. Halaman lokal di Chrome Target menampilkan pesan, kolom PIN, dan tombol RGB `RanggaCryzSOS`.
-7. PIN benar, tombol SOS, atau perintah UNLOCK dari Controller menghentikan sesi Lock.
-
-Halaman `lock.html` terpisah dari `receiver.js`, tetapi disajikan oleh server HTTP Receiver pada port lokal `47833`. Keduanya berkomunikasi melalui endpoint `/api/state`, `/api/unlock`, dan `/api/emergency-stop`.
-
-Chrome dibuka ulang sesuai interval 1–30 detik dan hanya selama durasi sesi yang dimasukkan (maksimal 5 menit). Sesi berhenti melalui SOS, PIN, UNLOCK Controller, atau saat Controller terputus. Fitur ini bukan Android Kiosk/Device Owner dan tidak mencegah pemilik Target menutup browser atau menghentikan Receiver.
-
-## TROUBLESHOOTING
-
-### 1. `bash: install-receiver.sh: No such file` atau file tidak ditemukan
-
-Masuk ke folder repository terlebih dahulu:
-
-```bash
-cd ~/dual-control-baru
-ls
-```
-
-Jika folder belum ada, ulangi proses clone pada Langkah 1.
-
-### 2. `node: command not found`
-
-Pasang Node.js melalui installer sesuai peran:
-
-```bash
-cd ~/dual-control-baru
-bash install-receiver.sh
-```
-
-Untuk HP Controller, gunakan `bash install-controller.sh`.
-
-### 3. `CANNOT LINK EXECUTABLE` atau pesan `cannot locate symbol`
-
-Coba perbarui paket Termux:
-
-```bash
-pkg update
-pkg upgrade -y
-pkg reinstall nodejs -y
+pkg update -y
+pkg install -y nodejs
 node -v
 ```
 
-Jika masih gagal, kirim pesan error lengkap untuk diperiksa. Jangan hapus folder proyek.
+### `termux-vibrate: command not found`
 
-### 4. Controller tidak menemukan Receiver
+Jalankan di HP Target:
 
-- Pastikan kedua HP berada pada Wi-Fi yang sama, atau Controller tersambung ke hotspot Target.
-- Pastikan Receiver masih berjalan.
-- Jika pencarian otomatis gagal, masukkan IP dan PIN secara manual.
-- Matikan VPN sementara jika koneksi lokal terganggu.
+```bash
+pkg update -y
+pkg install -y termux-api
+command -v termux-vibrate
+```
 
-### 5. PIN salah atau koneksi ditolak
+Pastikan aplikasi Android Termux:API juga sudah terpasang.
 
-Gunakan PIN terbaru yang sedang tampil di HP Target. Pastikan pemilik Target menyetujui permintaan dengan mengetik `y`.
+### VIBRATOR gagal atau muncul pesan Termux:API
 
-### 6. Aplikasi tidak terbuka
+Tes langsung di Termux Target:
 
-Tidak semua aplikasi yang muncul di daftar pasti bisa dibuka oleh Dual Control. Daftar package hanya menunjukkan bahwa paket aplikasi terpasang; itu **bukan jaminan** bahwa Android menyediakan Activity launcher yang bisa dipanggil dari program ini.
+```bash
+termux-vibrate -d 500
+```
 
-Beberapa penyebab aplikasi gagal dibuka:
+Jika tes langsung gagal, periksa pemasangan aplikasi Android Termux:API dan paket command-line `termux-api`. Jika tes langsung berhasil tetapi fitur Controller gagal, hentikan Receiver dengan `CTRL + C`, perbarui repository di Target, lalu jalankan Receiver kembali.
 
-- Aplikasi tidak memiliki ikon/Activity launcher, misalnya layanan latar belakang, plugin, komponen tambahan, atau aplikasi yang hanya dipanggil oleh aplikasi lain.
-- Activity launcher aplikasi tidak dapat ditemukan oleh Android melalui intent standar, atau tidak diizinkan untuk dijalankan dari luar aplikasinya.
-- Aplikasi memakai mekanisme pembukaan khusus, membutuhkan profil pengguna/ruang aplikasi tertentu, atau memiliki pembatasan dari pengembang.
-- Versi Android, ColorOS, atau ROM perangkat memiliki aturan berbeda tentang peluncuran aplikasi.
-- Aplikasi sudah tidak aktif, dinonaktifkan, belum selesai dipasang, atau package yang dipilih bukan aplikasi yang dimaksud.
+### Controller tidak menemukan Receiver
 
-**Yang perlu diketahui:**
-- Tanda berhasil dari Controller berarti perintah sudah diproses/dikirim, bukan bukti bahwa tampilan aplikasi pasti terbuka.
-- Jika Android mengembalikan pesan seperti `unable to resolve Intent`, berarti sistem tidak menemukan Activity yang cocok dengan permintaan pembukaan tersebut.
-- WhatsApp dan aplikasi tertentu mungkin memerlukan nama komponen launcher khusus. Komponen satu aplikasi tidak bisa diasumsikan berlaku untuk aplikasi lain.
-- Aplikasi yang tidak bisa dibuka dari Dual Control masih mungkin dapat dibuka secara normal dengan mengetuk ikonnya langsung di HP Target.
+- Pastikan kedua HP terhubung ke jaringan Wi-Fi/hotspot yang sama.
+- Pastikan Receiver masih berjalan di Target.
+- Untuk mode hotspot, Target harus tersambung ke hotspot Controller.
+- Masukkan IP Target dan PIN Pairing terbaru secara manual.
+- Periksa apakah VPN atau pengaturan jaringan menghalangi koneksi lokal.
 
-**Cara menguji:**
-1. Pastikan aplikasi bisa dibuka langsung di HP Target.
-2. Coba buka aplikasi itu dari Controller.
-3. Jika gagal, catat nama package dan pesan error yang muncul di Receiver/Controller.
-4. Jangan menganggap semua aplikasi akan didukung hanya karena namanya tampil di daftar.
+### Muncul `Perintah tidak dikenal`
 
+Biasanya Receiver yang sedang berjalan masih menggunakan proses atau file versi lama. Di terminal Receiver, tekan `CTRL + C`, masuk ke folder proyek, perbarui file, lalu jalankan ulang:
 
----
+```bash
+cd ~/ranggacryzhack-dual-control
+git pull --ff-only origin main
+node receiver.js
+```
 
-## KEAMANAN DAN BATASAN
+### `lock.html tidak ditemukan`
+
+Pastikan file `lock.html` ada di folder proyek:
+
+```bash
+cd ~/ranggacryzhack-dual-control
+ls lock.html
+git pull --ff-only origin main
+```
+
+### Aplikasi tidak terbuka
+
+Tidak semua aplikasi yang terpasang memiliki Activity launcher yang dapat dipanggil oleh Android. Jika gagal, catat nama package dan pesan error dari Receiver. Aplikasi yang tidak dapat dibuka dari Controller mungkin tetap bisa dibuka langsung dari ikon di HP Target.
+
+## 12. KEAMANAN DAN BATASAN
 
 - Gunakan hanya pada perangkat milik sendiri atau dengan izin pemiliknya.
-- Pemilik HP Target harus menyetujui pairing.
-- Jangan membagikan PIN kepada orang yang tidak dipercaya.
-- IP dan PIN hanya untuk koneksi jaringan lokal yang sedang digunakan.
-- Program ini bukan aplikasi remote desktop dan tidak menyediakan kontrol layar atau sentuhan.
-- Beberapa versi Android atau antarmuka pabrikan dapat membatasi pembukaan aplikasi dari proses latar belakang.
+- Pairing harus disetujui secara langsung di HP Target.
+- Jaga PIN Pairing dan PIN Lock agar tidak diketahui orang lain.
+- Program ini bukan remote desktop dan tidak menyediakan kontrol layar atau sentuhan.
+- Jangan tutup Receiver saat sesi masih digunakan; hentikan sesi terlebih dahulu.
+- Perilaku beberapa fitur dapat berbeda bergantung versi Android dan antarmuka pabrikan.
 
 ## FILE PROYEK
 
-- `receiver.js` — program di HP Target.
-- `controller.js` — program di HP Controller.
-- `install-receiver.sh` — installer kebutuhan Receiver.
-- `install-controller.sh` — installer kebutuhan Controller.
+- `receiver.js` — program pada HP Target.
+- `controller.js` — program pada HP Controller.
+- `lock.html` — halaman Local Lock.
+- `install-receiver.sh` — memasang Node.js dan paket Termux:API pada HP Target.
+- `install-controller.sh` — memasang Node.js pada HP Controller.
 
 **Repository:** https://github.com/julliansyahrangga-sketch/ranggacryzhack-dual-control
