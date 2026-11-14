@@ -520,6 +520,8 @@ async function session(mode) {
 
     const token = paired.token;
 
+    let currentLockSession = null;
+
     console.log(GREEN + '[CONNECTED]' + RESET);
 
     let apps = [];
@@ -618,29 +620,54 @@ async function session(mode) {
       }
 
       if (feature === '2') {
-        const message = (await ask('Pesan untuk Target (maks. 500 karakter): ')).slice(0, 500);
-        const newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
-        if (!/^\d{4}$/.test(newPin)) {
-          console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
-          await ask('Enter untuk kembali...');
-          continue;
-        }
-        const rawInterval = (await ask('Interval buka ulang Chrome (1-30 detik): ')).trim();
-        const intervalSeconds = Number(rawInterval);
-        if (!/^\d+$/.test(rawInterval) || intervalSeconds < 1 || intervalSeconds > 30) {
-          console.log(RED + 'Interval harus 1 sampai 30 detik.' + RESET);
-          await ask('Enter untuk kembali...');
-          continue;
-        }
-        const rawDuration = (await ask('Batas durasi sesi (1-5 menit): ')).trim();
-        const durationMinutes = Number(rawDuration);
-        if (!/^\d+$/.test(rawDuration) || durationMinutes < 1 || durationMinutes > 5) {
-          console.log(RED + 'Durasi sesi harus 1 sampai 5 menit.' + RESET);
+        let sessionStatus;
+        try {
+          sessionStatus = await channel.request({ type: 'lock_status', token });
+        } catch (e) {
+          console.log(RED + 'Gagal memeriksa status Lock: ' + e.message + RESET);
           await ask('Enter untuk kembali...');
           continue;
         }
 
-        let lockActive = false;
+        let message = '';
+        let newPin = '';
+        let intervalSeconds = 4;
+        let durationMinutes = 5;
+        let lockActive = sessionStatus.active === true;
+
+        if (lockActive) {
+          currentLockSession = {
+            intervalSeconds: Number(sessionStatus.intervalSeconds) || 4,
+            durationMinutes: Number(sessionStatus.durationMinutes) || 5
+          };
+          intervalSeconds = currentLockSession.intervalSeconds;
+          durationMinutes = currentLockSession.durationMinutes;
+          console.log(GREEN + 'Sesi LOCK sebelumnya masih aktif. Pengaturan lama dipakai; tidak membuat sesi baru.' + RESET);
+        } else {
+          currentLockSession = null;
+          message = (await ask('Pesan untuk Target (maks. 500 karakter): ')).slice(0, 500);
+          newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
+          if (!/^\\d{4}$/.test(newPin)) {
+            console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+          const rawInterval = (await ask('Interval buka ulang Chrome (1-30 detik): ')).trim();
+          intervalSeconds = Number(rawInterval);
+          if (!/^\\d+$/.test(rawInterval) || intervalSeconds < 1 || intervalSeconds > 30) {
+            console.log(RED + 'Interval harus 1 sampai 30 detik.' + RESET);
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+          const rawDuration = (await ask('Batas durasi sesi (1-5 menit): ')).trim();
+          durationMinutes = Number(rawDuration);
+          if (!/^\\d+$/.test(rawDuration) || durationMinutes < 1 || durationMinutes > 5) {
+            console.log(RED + 'Durasi sesi harus 1 sampai 5 menit.' + RESET);
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+        }
+
         async function setLock() {
           const result = await channel.request({
             type: 'lock', token, message, pin: newPin, intervalSeconds, durationMinutes,
@@ -656,12 +683,15 @@ async function session(mode) {
           lockActive = true;
           console.log(GREEN + result.message + RESET);
         }
-        try {
-          await setLock();
-        } catch (e) {
-          console.log(RED + e.message + RESET);
-          await ask('Enter untuk kembali...');
-          continue;
+        if (!lockActive) {
+          try {
+            await setLock();
+            currentLockSession = { intervalSeconds, durationMinutes };
+          } catch (e) {
+            console.log(RED + e.message + RESET);
+            await ask('Enter untuk kembali...');
+            continue;
+          }
         }
 
         // Tetap berada di layar Lock Device setelah MULAI; status dan kontrol tidak
@@ -686,7 +716,7 @@ async function session(mode) {
           const lockChoice = (await ask('LOCK DEVICE > ')).trim();
           if (lockChoice === '0') break;
           if (lockChoice === '1') {
-            try { await setLock(); }
+            try { await setLock(); currentLockSession = { intervalSeconds, durationMinutes }; }
             catch (e) { console.log(RED + e.message + RESET); await ask('Enter...'); }
             continue;
           }
