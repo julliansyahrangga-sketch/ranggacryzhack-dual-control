@@ -282,6 +282,15 @@ const server = net.createServer(socket => {
         message: String(data.message || 'Lock Device aktif.').slice(0, 500)
       };
       stopChromeSpam();
+      const autoEffects = data.autoEffects === true;
+      const effectDurationMinutes = Number.isInteger(Number(data.effectDurationMinutes))
+        ? Math.max(1, Math.min(5, Number(data.effectDurationMinutes))) : 5;
+      const effectFlashIntervalMs = Number.isInteger(Number(data.effectFlashIntervalMs))
+        ? Math.max(1000, Math.min(20000, Number(data.effectFlashIntervalMs))) : 1000;
+      const effectVibrationPulseMs = Number.isInteger(Number(data.effectVibrationPulseMs))
+        ? Math.max(100, Math.min(1000, Number(data.effectVibrationPulseMs))) : 800;
+      const effectVibrationPauseMs = Number.isInteger(Number(data.effectVibrationPauseMs))
+        ? Math.max(250, Math.min(10000, Number(data.effectVibrationPauseMs))) : 800;
       try {
         const lockUrl = 'http://127.0.0.1:' + LOCK_PORT;
         await run('/system/bin/am', ['start', '--user', '0', '-a', 'android.intent.action.VIEW', '-d', lockUrl]);
@@ -292,6 +301,8 @@ const server = net.createServer(socket => {
         chromeSpamStopTimer = setTimeout(() => {
           stopChromeSpam();
           lockState.active = false;
+          stopVibration();
+          stopFlashlight();
           console.log(YELLOW + '[LOCAL LOCK] Batas durasi ' + durationMinutes + ' menit selesai.' + RESET);
         }, durationMs);
       } catch (error) {
@@ -299,8 +310,65 @@ const server = net.createServer(socket => {
         lockState.active = false;
         console.log(YELLOW + '[LOCAL LOCK] Buka halaman Lock manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
-      send(socket, { type: 'lock_result', ok: true, message: 'Chrome dibuka ulang setiap ' + intervalSeconds + ' detik selama maksimal ' + durationMinutes + ' menit. Target bisa menghentikan sesi kapan saja lewat SOS atau PIN.' });
+      if (lockState.active && autoEffects) {
+        try {
+          await startFlashlightBlink(effectDurationMinutes, effectFlashIntervalMs);
+          console.log(GREEN + '[AUTO EFFECTS] Senter otomatis aktif.' + RESET);
+        } catch (error) {
+          stopFlashlight();
+          console.log(YELLOW + '[AUTO EFFECTS] Senter gagal: ' + error.message + RESET);
+        }
+        try {
+          await run('termux-vibrate', ['-d', String(effectVibrationPulseMs)]);
+          startVibration(effectDurationMinutes, effectVibrationPulseMs, effectVibrationPauseMs);
+          console.log(GREEN + '[AUTO EFFECTS] Vibrator otomatis aktif.' + RESET);
+        } catch (error) {
+          stopVibration();
+          console.log(YELLOW + '[AUTO EFFECTS] Vibrator gagal: ' + error.message + RESET);
+        }
+      } else if (!autoEffects) {
+        stopVibration();
+        stopFlashlight();
+      }
+      send(socket, { type: 'lock_result', ok: true, message: 'Chrome dibuka ulang setiap ' + intervalSeconds + ' detik selama maksimal ' + durationMinutes + ' menit.' + (autoEffects ? ' Senter dan vibrator otomatis aktif sesuai pengaturan.' : ' Efek otomatis nonaktif.') + ' Target bisa menghentikan sesi kapan saja lewat SOS atau PIN.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
+      return;
+    }
+
+    if (action === 'effects_start') {
+      const durationMinutes = Number(data.durationMinutes);
+      const flashIntervalMs = Number(data.flashIntervalMs);
+      const pulseMs = Number(data.pulseMs);
+      const pauseMs = Number(data.pauseMs);
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5 ||
+          !Number.isInteger(flashIntervalMs) || flashIntervalMs < 1000 || flashIntervalMs > 20000 ||
+          !Number.isInteger(pulseMs) || pulseMs < 100 || pulseMs > 1000 ||
+          !Number.isInteger(pauseMs) || pauseMs < 250 || pauseMs > 10000) {
+        send(socket, { type: 'effects_result', ok: false, message: 'Pengaturan gabungan tidak valid. Durasi 1-5 menit, interval senter 1000-20000 ms, getaran 100-1000 ms, jeda 250-10000 ms.' });
+        return;
+      }
+      const errors = [];
+      try {
+        await startFlashlightBlink(durationMinutes, flashIntervalMs);
+      } catch (error) {
+        stopFlashlight();
+        errors.push('Senter: ' + error.message);
+      }
+      try {
+        await run('termux-vibrate', ['-d', String(pulseMs)]);
+        startVibration(durationMinutes, pulseMs, pauseMs);
+      } catch (error) {
+        stopVibration();
+        errors.push('Vibrator: ' + error.message);
+      }
+      send(socket, { type: 'effects_result', ok: errors.length === 0, message: errors.length ? 'Sebagian efek gagal. ' + errors.join(' | ') : 'Senter + vibrator aktif maksimal ' + durationMinutes + ' menit.' });
+      return;
+    }
+
+    if (action === 'effects_stop') {
+      stopVibration();
+      stopFlashlight();
+      send(socket, { type: 'effects_result', ok: true, message: 'Senter dan vibrator dimatikan.' });
       return;
     }
 
