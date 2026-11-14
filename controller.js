@@ -475,6 +475,7 @@ async function session(mode) {
           console.log('[2] UNLOCK');
           console.log('[3] VIBRATOR');
           console.log('[4] STOP VIBRATOR');
+          console.log('[5] FLASHLIGHT');
           console.log('[0] KEMBALI');
           const lockChoice = (await ask('LOCK DEVICE > ')).trim();
           if (lockChoice === '0') break;
@@ -528,6 +529,52 @@ async function session(mode) {
           if (lockChoice === '4') {
             try {
               const result = await channel.request({ type: 'stop_vibration', token });
+              console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
+            } catch (e) {
+              console.log(RED + e.message + RESET);
+            }
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+          if (lockChoice === '5') {
+            console.log('\\n[ FLASHLIGHT ]');
+            console.log('[a] AKTIFKAN');
+            console.log('[b] MATIKAN');
+            console.log('[c] KELAP-KELIP');
+            console.log('[0] KEMBALI');
+            const flashlightChoice = (await ask('FLASHLIGHT > ')).trim().toLowerCase();
+            if (flashlightChoice === '0') continue;
+            try {
+              let request;
+              if (flashlightChoice === 'a') {
+                request = { type: 'flashlight_on', token };
+              } else if (flashlightChoice === 'b') {
+                request = { type: 'flashlight_off', token };
+              } else if (flashlightChoice === 'c') {
+                const rawFlashMinutes = (await ask('Durasi kelap-kelip (1-5 menit): ')).trim();
+                const flashMinutes = Number(rawFlashMinutes);
+                if (!/^\\d+$/.test(rawFlashMinutes) || flashMinutes < 1 || flashMinutes > 5) {
+                  console.log(RED + 'Durasi harus 1 sampai 5 menit.' + RESET);
+                  await ask('Enter...');
+                  continue;
+                }
+                const rawFlashInterval = (await ask('Interval kedip (1000-20000 ms): ')).trim();
+                const flashInterval = Number(rawFlashInterval);
+                if (!/^\\d+$/.test(rawFlashInterval) || flashInterval < 1000 || flashInterval > 20000) {
+                  console.log(RED + 'Interval harus 1000 sampai 20000 ms.' + RESET);
+                  await ask('Enter...');
+                  continue;
+                }
+                request = {
+                  type: 'flashlight_blink', token,
+                  durationMinutes: flashMinutes, intervalMs: flashInterval
+                };
+              } else {
+                console.log('Pilihan tidak valid.');
+                await ask('Enter...');
+                continue;
+              }
+              const result = await channel.request(request, 20000);
               console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
             } catch (e) {
               console.log(RED + e.message + RESET);
