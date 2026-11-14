@@ -332,6 +332,23 @@ async function session(mode) {
 
     let apps = [];
     let source = 'launcher';
+    let autoEffects = true;
+    const effectSettings = {
+      durationMinutes: 5,
+      flashIntervalMs: 1000,
+      pulseMs: 800,
+      pauseMs: 800
+    };
+
+    async function readEffectNumber(label, min, max) {
+      const raw = (await ask(label)).trim();
+      const value = Number(raw);
+      if (!/^\\d+$/.test(raw) || value < min || value > max) {
+        console.log(RED + 'Nilai harus ' + min + ' sampai ' + max + '.' + RESET);
+        return null;
+      }
+      return value;
+    }
 
     async function refresh() {
       const result = await channel.request({
@@ -360,10 +377,73 @@ async function session(mode) {
       console.log(GREEN + '========================================' + RESET);
       console.log('[1] OPEN APP');
       console.log('[2] LOCK DEVICE');
+      console.log('[3] CONFIGURATION');
       console.log('[0] DISCONNECT');
       const feature = (await ask('PILIH FITUR > ')).trim();
 
       if (feature === '0') break;
+
+      if (feature === '3') {
+        while (true) {
+          banner();
+          console.log(GREEN + '========================================' + RESET);
+          console.log(GREEN + '              CONFIGURATION' + RESET);
+          console.log(GREEN + '========================================' + RESET);
+          console.log('AUTO EFFECTS : ' + (autoEffects ? 'ON' : 'OFF'));
+          console.log('DURASI       : ' + effectSettings.durationMinutes + ' menit');
+          console.log('SENTER       : ' + effectSettings.flashIntervalMs + ' ms');
+          console.log('GETAR        : ' + effectSettings.pulseMs + ' ms / jeda ' + effectSettings.pauseMs + ' ms');
+          console.log('');
+          console.log('[1] AUTO EFFECTS ON / OFF');
+          console.log('[2] DEFAULT SETTINGS');
+          console.log('[3] CUSTOM SETTINGS');
+          console.log('[0] KEMBALI');
+          const configChoice = (await ask('CONFIGURATION > ')).trim();
+
+          if (configChoice === '0') break;
+
+          if (configChoice === '1') {
+            autoEffects = !autoEffects;
+            console.log('AUTO EFFECTS: ' + (autoEffects ? 'ON' : 'OFF'));
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+
+          if (configChoice === '2') {
+            effectSettings.durationMinutes = 5;
+            effectSettings.flashIntervalMs = 1000;
+            effectSettings.pulseMs = 800;
+            effectSettings.pauseMs = 800;
+            console.log(GREEN + 'DEFAULT SETTINGS diterapkan.' + RESET);
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+
+          if (configChoice === '3') {
+            const effectDuration = await readEffectNumber('Durasi efek (1-5 menit): ', 1, 5);
+            const flashInterval = await readEffectNumber('Interval senter (1000-20000 ms): ', 1000, 20000);
+            const pulse = await readEffectNumber('Lama getaran (100-1000 ms): ', 100, 1000);
+            const pause = await readEffectNumber('Jeda getaran (250-10000 ms): ', 250, 10000);
+
+            if ([effectDuration, flashInterval, pulse, pause].some(value => value === null)) {
+              await ask('Enter untuk kembali...');
+              continue;
+            }
+
+            effectSettings.durationMinutes = effectDuration;
+            effectSettings.flashIntervalMs = flashInterval;
+            effectSettings.pulseMs = pulse;
+            effectSettings.pauseMs = pause;
+            console.log(GREEN + 'CUSTOM SETTINGS tersimpan untuk sesi ini.' + RESET);
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+
+          console.log('Pilihan tidak valid.');
+          await ask('Enter...');
+        }
+        continue;
+      }
 
       if (feature === '1') {
         try {
@@ -443,46 +523,6 @@ async function session(mode) {
           continue;
         }
 
-        let autoEffects = true;
-        const effectSettings = {
-          durationMinutes: 5,
-          flashIntervalMs: 1000,
-          pulseMs: 800,
-          pauseMs: 800
-        };
-        async function readEffectNumber(label, min, max) {
-          const raw = (await ask(label)).trim();
-          const value = Number(raw);
-          if (!/^\d+$/.test(raw) || value < min || value > max) {
-            console.log(RED + 'Nilai harus ' + min + ' sampai ' + max + '.' + RESET);
-            return null;
-          }
-          return value;
-        }
-        const autoChoice = (await ask('Otomatis nyalakan senter + vibrator saat LOCK? (Y/n): ')).trim().toLowerCase();
-        autoEffects = autoChoice !== 'n' && autoChoice !== 'no';
-        if (autoEffects) {
-          const settingsChoice = (await ask('Setting efek [1] DEFAULT (5 menit, senter 1000 ms, getar 800 ms) [2] CUSTOM: ')).trim();
-          if (settingsChoice === '2') {
-            const effectDuration = await readEffectNumber('Durasi efek (1-5 menit): ', 1, 5);
-            const flashInterval = await readEffectNumber('Interval senter (1000-20000 ms): ', 1000, 20000);
-            const pulse = await readEffectNumber('Lama getaran (100-1000 ms): ', 100, 1000);
-            const pause = await readEffectNumber('Jeda getaran (250-10000 ms): ', 250, 10000);
-            if ([effectDuration, flashInterval, pulse, pause].some(value => value === null)) {
-              await ask('Enter untuk kembali...');
-              continue;
-            }
-            effectSettings.durationMinutes = effectDuration;
-            effectSettings.flashIntervalMs = flashInterval;
-            effectSettings.pulseMs = pulse;
-            effectSettings.pauseMs = pause;
-          } else if (settingsChoice !== '1' && settingsChoice !== '') {
-            console.log(RED + 'Pilihan setting tidak valid.' + RESET);
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-        }
-
         let lockActive = false;
         async function setLock() {
           const result = await channel.request({
@@ -523,7 +563,6 @@ async function session(mode) {
           console.log('[5] FLASHLIGHT');
           console.log('[6] NYALAKAN SENTER + VIBRATOR');
           console.log('[7] MATIKAN SENTER + VIBRATOR');
-          console.log('[8] PENGATURAN AUTO / CUSTOM');
           console.log('[0] KEMBALI');
           const lockChoice = (await ask('LOCK DEVICE > ')).trim();
           if (lockChoice === '0') break;
@@ -603,44 +642,6 @@ async function session(mode) {
               const result = await channel.request({ type: 'effects_stop', token });
               console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
             } catch (e) { console.log(RED + e.message + RESET); }
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-          if (lockChoice === '8') {
-            const autoRaw = (await ask('Aktifkan otomatis saat LOCK? (Y/n): ')).trim().toLowerCase();
-            autoEffects = autoRaw !== 'n' && autoRaw !== 'no';
-            if (autoEffects) {
-              const effectDuration = await readEffectNumber('Durasi efek (1-5 menit): ', 1, 5);
-              const flashInterval = await readEffectNumber('Interval senter (1000-20000 ms): ', 1000, 20000);
-              const pulse = await readEffectNumber('Lama getaran (100-1000 ms): ', 100, 1000);
-              const pause = await readEffectNumber('Jeda getaran (250-10000 ms): ', 250, 10000);
-              if ([effectDuration, flashInterval, pulse, pause].some(value => value === null)) {
-                await ask('Enter untuk kembali...');
-                continue;
-              }
-              effectSettings.durationMinutes = effectDuration;
-              effectSettings.flashIntervalMs = flashInterval;
-              effectSettings.pulseMs = pulse;
-              effectSettings.pauseMs = pause;
-              if (lockActive) {
-                try {
-                  const result = await channel.request({
-                    type: 'effects_start', token,
-                    durationMinutes: effectSettings.durationMinutes,
-                    flashIntervalMs: effectSettings.flashIntervalMs,
-                    pulseMs: effectSettings.pulseMs,
-                    pauseMs: effectSettings.pauseMs
-                  }, 20000);
-                  console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
-                } catch (e) { console.log(RED + e.message + RESET); }
-              }
-            } else {
-              try {
-                const result = await channel.request({ type: 'effects_stop', token });
-                console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
-              } catch (e) { console.log(RED + e.message + RESET); }
-            }
-            console.log('AUTO EFFECTS: ' + (autoEffects ? 'ON' : 'OFF'));
             await ask('Enter untuk kembali...');
             continue;
           }
