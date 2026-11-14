@@ -43,7 +43,12 @@ function stopFlashlight() {
   run('termux-torch', ['off']).catch(() => {});
 }
 async function startFlashlightBlink(durationMinutes, intervalMs) {
-  stopFlashlight();
+  if (flashlightTimer) clearTimeout(flashlightTimer);
+  if (flashlightStopTimer) clearTimeout(flashlightStopTimer);
+  flashlightTimer = null;
+  flashlightStopTimer = null;
+  flashlightActive = false;
+  await run('termux-torch', ['off']);
   flashlightActive = true;
   const endAt = Date.now() + durationMinutes * 60000;
   let lightOn = false;
@@ -371,6 +376,7 @@ const server = net.createServer(socket => {
     if (action === 'unlock') {
       stopChromeSpam();
       stopVibration();
+      stopFlashlight();
       lockState.active = false;
       send(socket, { type: 'unlock_result', ok: true, message: 'Local Lock dinonaktifkan oleh Controller.' });
       console.log(YELLOW + '[LOCAL LOCK] Dinonaktifkan Controller.' + RESET);
