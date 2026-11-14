@@ -647,21 +647,21 @@ async function session(mode) {
           currentLockSession = null;
           message = (await ask('Pesan untuk Target (maks. 500 karakter): ')).slice(0, 500);
           newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
-          if (!/^\\d{4}$/.test(newPin)) {
+          if (!/^\d{4}$/.test(newPin)) {
             console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
             await ask('Enter untuk kembali...');
             continue;
           }
           const rawInterval = (await ask('Interval buka ulang Chrome (1-30 detik): ')).trim();
           intervalSeconds = Number(rawInterval);
-          if (!/^\\d+$/.test(rawInterval) || intervalSeconds < 1 || intervalSeconds > 30) {
+          if (!/^\d+$/.test(rawInterval) || intervalSeconds < 1 || intervalSeconds > 30) {
             console.log(RED + 'Interval harus 1 sampai 30 detik.' + RESET);
             await ask('Enter untuk kembali...');
             continue;
           }
           const rawDuration = (await ask('Batas durasi sesi (1-5 menit): ')).trim();
           durationMinutes = Number(rawDuration);
-          if (!/^\\d+$/.test(rawDuration) || durationMinutes < 1 || durationMinutes > 5) {
+          if (!/^\d+$/.test(rawDuration) || durationMinutes < 1 || durationMinutes > 5) {
             console.log(RED + 'Durasi sesi harus 1 sampai 5 menit.' + RESET);
             await ask('Enter untuk kembali...');
             continue;
