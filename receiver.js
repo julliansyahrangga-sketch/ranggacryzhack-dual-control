@@ -187,16 +187,7 @@ const server = net.createServer(socket => {
 
       protocol = isLegacy ? 'legacy' : 'v2';
       console.log(YELLOW + '\nPERMINTAAN PAIRING' + RESET);
-      console.log('Controller meminta izin menampilkan daftar aplikasi dan membuka aplikasi.');
-      const answer = (await ask('Izinkan koneksi? (y/n): ')).trim().toLowerCase();
-
-      if (answer !== 'y' && answer !== 'ya') {
-        send(socket, protocol === 'legacy'
-          ? { ok: false, error: 'Permintaan pairing ditolak di Receiver.' }
-          : { type: 'error', message: 'Permintaan pairing ditolak di Receiver.' });
-        socket.end();
-        return;
-      }
+      console.log('PIN valid. Koneksi Controller diterima otomatis.');
 
       paired = true;
       activeSocket = socket;
