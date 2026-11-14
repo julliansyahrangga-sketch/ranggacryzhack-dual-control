@@ -267,7 +267,7 @@ const server = net.createServer(socket => {
         active: lockState.active === true,
         intervalSeconds: Number(lockState.intervalSeconds) || 4,
         durationMinutes: Number(lockState.durationMinutes) || 5,
-        pinStored: /^\\d{4}$/.test(LOCK_PIN)
+        pinStored: /^\d{4}$/.test(LOCK_PIN)
       });
       return;
     }
