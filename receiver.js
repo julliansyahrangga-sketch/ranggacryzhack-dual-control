@@ -18,6 +18,9 @@ let chromeSpamStopTimer = null;
 let vibrationTimer = null;
 let vibrationStopTimer = null;
 let vibrationActive = false;
+let flashlightTimer = null;
+let flashlightStopTimer = null;
+let flashlightActive = false;
 function stopChromeSpam() {
   if (chromeSpamTimer) clearInterval(chromeSpamTimer);
   if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
@@ -30,6 +33,43 @@ function stopVibration() {
   vibrationTimer = null;
   vibrationStopTimer = null;
   vibrationActive = false;
+}
+function stopFlashlight() {
+  if (flashlightTimer) clearTimeout(flashlightTimer);
+  if (flashlightStopTimer) clearTimeout(flashlightStopTimer);
+  flashlightTimer = null;
+  flashlightStopTimer = null;
+  flashlightActive = false;
+  run('termux-torch', ['off']).catch(() => {});
+}
+async function startFlashlightBlink(durationMinutes, intervalMs) {
+  stopFlashlight();
+  flashlightActive = true;
+  const endAt = Date.now() + durationMinutes * 60000;
+  let lightOn = false;
+  const pulse = async () => {
+    if (!flashlightActive || Date.now() >= endAt) {
+      stopFlashlight();
+      console.log(YELLOW + '[FLASHLIGHT] Kelap-kelip selesai otomatis.' + RESET);
+      return;
+    }
+    lightOn = !lightOn;
+    try {
+      await run('termux-torch', [lightOn ? 'on' : 'off']);
+    } catch (error) {
+      stopFlashlight();
+      console.log(YELLOW + '[FLASHLIGHT] ' + error.message + RESET);
+      return;
+    }
+    if (flashlightActive) flashlightTimer = setTimeout(pulse, intervalMs);
+  };
+  await run('termux-torch', ['on']);
+  lightOn = true;
+  flashlightTimer = setTimeout(pulse, intervalMs);
+  flashlightStopTimer = setTimeout(() => {
+    stopFlashlight();
+    console.log(YELLOW + '[FLASHLIGHT] Batas durasi ' + durationMinutes + ' menit selesai.' + RESET);
+  }, durationMinutes * 60000);
 }
 function startVibration(durationMinutes, pulseMs, pauseMs) {
   stopVibration();
@@ -105,6 +145,7 @@ const webServer = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/api/emergency-stop') {
     stopChromeSpam();
     stopVibration();
+    stopFlashlight();
     lockState.active = false;
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ ok: true, message: 'Sesi istirahat dihentikan.' }));
@@ -127,6 +168,7 @@ const webServer = http.createServer((req, res) => {
       }
       stopChromeSpam();
       stopVibration();
+      stopFlashlight();
       lockState.active = false;
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, message: 'PIN benar. Halaman berhasil dibuka.' }));
@@ -279,6 +321,46 @@ const server = net.createServer(socket => {
       return;
     }
 
+    if (action === 'flashlight_on') {
+      try {
+        stopFlashlight();
+        await run('termux-torch', ['on']);
+        flashlightActive = true;
+        send(socket, { type: 'flashlight_result', ok: true, message: 'Senter dinyalakan. Pilih MATIKAN untuk memadamkan.' });
+        console.log(GREEN + '[FLASHLIGHT] Dinyalakan.' + RESET);
+      } catch (error) {
+        stopFlashlight();
+        send(socket, { type: 'flashlight_result', ok: false, message: 'Gagal menyalakan senter. Pastikan Termux:API terpasang dan izin kamera diberikan. ' + error.message });
+      }
+      return;
+    }
+
+    if (action === 'flashlight_off' || action === 'stop_flashlight') {
+      stopFlashlight();
+      send(socket, { type: 'flashlight_result', ok: true, message: 'Senter dimatikan.' });
+      console.log(YELLOW + '[FLASHLIGHT] Dimatikan.' + RESET);
+      return;
+    }
+
+    if (action === 'flashlight_blink') {
+      const durationMinutes = Number(data.durationMinutes);
+      const intervalMs = Number(data.intervalMs);
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5 ||
+          !Number.isInteger(intervalMs) || intervalMs < 1000 || intervalMs > 20000) {
+        send(socket, { type: 'flashlight_result', ok: false, message: 'Pengaturan tidak valid. Durasi 1-5 menit dan interval 1000-20000 ms.' });
+        return;
+      }
+      try {
+        await startFlashlightBlink(durationMinutes, intervalMs);
+        send(socket, { type: 'flashlight_result', ok: true, message: 'Kelap-kelip aktif selama maksimal ' + durationMinutes + ' menit, interval ' + intervalMs + ' ms. Bisa dihentikan dengan MATIKAN atau PIN Lock.' });
+        console.log(GREEN + '[FLASHLIGHT] Kelap-kelip aktif.' + RESET);
+      } catch (error) {
+        stopFlashlight();
+        send(socket, { type: 'flashlight_result', ok: false, message: 'Gagal menjalankan senter. Pastikan Termux:API terpasang dan izin kamera diberikan. ' + error.message });
+      }
+      return;
+    }
+
     if (action === 'stop_vibration') {
       stopVibration();
       send(socket, { type: 'stop_vibration_result', ok: true, message: 'Vibrator dihentikan.' });
@@ -417,6 +499,7 @@ const server = net.createServer(socket => {
       activeSocket = null;
       stopChromeSpam();
       stopVibration();
+      stopFlashlight();
       lockState.active = false;
     }
     console.log(YELLOW + '\n[DISCONNECTED] Controller terputus.' + RESET);
@@ -449,6 +532,7 @@ server.listen(PORT, '0.0.0.0');
 
 process.on('SIGINT', () => {
   stopVibration();
+  stopFlashlight();
   stopChromeSpam();
   console.log(YELLOW + '\nReceiver dihentikan.' + RESET);
   server.close();
