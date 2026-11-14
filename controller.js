@@ -520,8 +520,6 @@ async function session(mode) {
 
     const token = paired.token;
 
-    let currentLockSession = null;
-
     console.log(GREEN + '[CONNECTED]' + RESET);
 
     let apps = [];
@@ -629,98 +627,117 @@ async function session(mode) {
           continue;
         }
 
-        let message = '';
-        let newPin = '';
-        let intervalSeconds = 4;
-        let durationMinutes = 5;
         let lockActive = sessionStatus.active === true;
+        let lockInfo = lockActive ? {
+          intervalSeconds: Number(sessionStatus.intervalSeconds) || 4,
+          durationMinutes: Number(sessionStatus.durationMinutes) || 5
+        } : null;
+        let lockSettings = null;
 
         if (lockActive) {
-          currentLockSession = {
-            intervalSeconds: Number(sessionStatus.intervalSeconds) || 4,
-            durationMinutes: Number(sessionStatus.durationMinutes) || 5
-          };
-          intervalSeconds = currentLockSession.intervalSeconds;
-          durationMinutes = currentLockSession.durationMinutes;
-          console.log(GREEN + 'Sesi LOCK sebelumnya masih aktif. Pengaturan lama dipakai; tidak membuat sesi baru.' + RESET);
+          console.log(GREEN + 'Sesi LOCK sebelumnya masih aktif. Pengaturan sesi lama tetap digunakan.' + RESET);
         } else {
-          currentLockSession = null;
-          message = (await ask('Pesan untuk Target (maks. 500 karakter): ')).slice(0, 500);
-          newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
-          if (!/^\d{4}$/.test(newPin)) {
-            console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-          const rawInterval = (await ask('Interval buka ulang Chrome (1-30 detik): ')).trim();
-          intervalSeconds = Number(rawInterval);
-          if (!/^\d+$/.test(rawInterval) || intervalSeconds < 1 || intervalSeconds > 30) {
-            console.log(RED + 'Interval harus 1 sampai 30 detik.' + RESET);
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-          const rawDuration = (await ask('Batas durasi sesi (1-5 menit): ')).trim();
-          durationMinutes = Number(rawDuration);
-          if (!/^\d+$/.test(rawDuration) || durationMinutes < 1 || durationMinutes > 5) {
-            console.log(RED + 'Durasi sesi harus 1 sampai 5 menit.' + RESET);
-            await ask('Enter untuk kembali...');
-            continue;
-          }
+          console.log(YELLOW + 'Belum ada sesi Lock aktif. Pilih [1] untuk mengisi pengaturan dan langsung mengaktifkan Lock.' + RESET);
         }
 
-        async function setLock() {
+        async function setLock(settings) {
+          const activeConfig = getActiveConfig();
           const result = await channel.request({
-            type: 'lock', token, message, pin: newPin, intervalSeconds, durationMinutes,
-            autoEffects: configStore.autoEffects && !!getActiveConfig(),
-            effectDurationMinutes: getActiveConfig() ? Math.max(getActiveConfig().flashDurationMinutes, getActiveConfig().vibrationDurationMinutes) : 5,
-            effectFlashDurationMinutes: getActiveConfig() ? getActiveConfig().flashDurationMinutes : 5,
-            effectVibrationDurationMinutes: getActiveConfig() ? getActiveConfig().vibrationDurationMinutes : 5,
-            effectFlashIntervalMs: getActiveConfig() ? getActiveConfig().flashIntervalMs : 1000,
-            effectVibrationPulseMs: getActiveConfig() ? getActiveConfig().vibrationPulseMs : 800,
+            type: 'lock',
+            token,
+            message: settings.message,
+            pin: settings.pin,
+            intervalSeconds: settings.intervalSeconds,
+            durationMinutes: settings.durationMinutes,
+            autoEffects: configStore.autoEffects && !!activeConfig,
+            effectDurationMinutes: activeConfig ? Math.max(activeConfig.flashDurationMinutes, activeConfig.vibrationDurationMinutes) : 5,
+            effectFlashDurationMinutes: activeConfig ? activeConfig.flashDurationMinutes : 5,
+            effectVibrationDurationMinutes: activeConfig ? activeConfig.vibrationDurationMinutes : 5,
+            effectFlashIntervalMs: activeConfig ? activeConfig.flashIntervalMs : 1000,
+            effectVibrationPulseMs: activeConfig ? activeConfig.vibrationPulseMs : 800,
             effectVibrationPauseMs: 800
           });
           if (!result.ok) throw new Error(result.message || 'Gagal mengaktifkan Lock Device.');
           lockActive = true;
+          lockInfo = {
+            intervalSeconds: settings.intervalSeconds,
+            durationMinutes: settings.durationMinutes
+          };
           console.log(GREEN + result.message + RESET);
         }
-        if (!lockActive) {
-          try {
-            await setLock();
-            currentLockSession = { intervalSeconds, durationMinutes };
-          } catch (e) {
-            console.log(RED + e.message + RESET);
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-        }
 
-        // Tetap berada di layar Lock Device setelah MULAI; status dan kontrol tidak
-        // otomatis kembali ke menu utama.
         while (true) {
           banner();
           console.log(GREEN + '========================================' + RESET);
           console.log(GREEN + '               LOCK DEVICE' + RESET);
           console.log(GREEN + '========================================' + RESET);
           console.log('STATUS : ' + (lockActive ? GREEN + 'LOCK ACTIVE' : YELLOW + 'UNLOCKED') + RESET);
-          console.log('PIN    : tersimpan untuk sesi Lock ini');
-          console.log('INTERVAL : ' + intervalSeconds + ' detik\nDURASI  : ' + durationMinutes + ' menit');
+          console.log('PIN    : ' + (lockActive ? 'tersimpan untuk sesi Lock ini' : 'belum ada sesi Lock aktif'));
+          console.log('INTERVAL : ' + (lockInfo ? lockInfo.intervalSeconds + ' detik' : '-') +
+            '\nDURASI  : ' + (lockInfo ? lockInfo.durationMinutes + ' menit' : '-'));
           console.log('');
-          console.log('[1] LOCK');
-          console.log('[2] UNLOCK');
-          console.log('[3] VIBRATOR');
-          console.log('[4] STOP VIBRATOR');
-          console.log('[5] FLASHLIGHT');
-          console.log('[6] NYALAKAN SENTER + VIBRATOR');
-          console.log('[7] MATIKAN SENTER + VIBRATOR');
+          console.log('[1] MASUKAN PESAN, PIN, DAN DURASI KUNCI');
+          console.log('[2] LOCK');
+          console.log('[3] UNLOCK');
+          console.log('[4] VIBRATOR');
+          console.log('[5] STOP VIBRATOR');
+          console.log('[6] FLASHLIGHT');
+          console.log('[7] NYALAKAN SENTER + VIBRATOR');
+          console.log('[8] MATIKAN SENTER + VIBRATOR');
           console.log('[0] KEMBALI');
           const lockChoice = (await ask('LOCK DEVICE > ')).trim();
           if (lockChoice === '0') break;
+
           if (lockChoice === '1') {
-            try { await setLock(); currentLockSession = { intervalSeconds, durationMinutes }; }
-            catch (e) { console.log(RED + e.message + RESET); await ask('Enter...'); }
+            const message = (await ask('Pesan untuk Target (maks. 500 karakter): ')).slice(0, 500);
+            const newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
+            if (!/^\d{4}$/.test(newPin)) {
+              console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
+              await ask('Enter untuk kembali...');
+              continue;
+            }
+            const rawInterval = (await ask('Interval buka ulang Chrome (1-30 detik): ')).trim();
+            const intervalSeconds = Number(rawInterval);
+            if (!/^\d+$/.test(rawInterval) || intervalSeconds < 1 || intervalSeconds > 30) {
+              console.log(RED + 'Interval harus 1 sampai 30 detik.' + RESET);
+              await ask('Enter untuk kembali...');
+              continue;
+            }
+            const rawDuration = (await ask('Batas durasi sesi (1-5 menit): ')).trim();
+            const durationMinutes = Number(rawDuration);
+            if (!/^\d+$/.test(rawDuration) || durationMinutes < 1 || durationMinutes > 5) {
+              console.log(RED + 'Durasi sesi harus 1 sampai 5 menit.' + RESET);
+              await ask('Enter untuk kembali...');
+              continue;
+            }
+
+            lockSettings = { message, pin: newPin, intervalSeconds, durationMinutes };
+            try {
+              await setLock(lockSettings);
+            } catch (e) {
+              console.log(RED + e.message + RESET);
+              await ask('Enter untuk kembali...');
+            }
             continue;
           }
+
           if (lockChoice === '2') {
+            if (lockActive) {
+              console.log(YELLOW + 'LOCK sudah aktif.' + RESET);
+            } else if (!lockSettings) {
+              console.log(YELLOW + 'Pilih [1] terlebih dahulu untuk memasukkan pesan, PIN, interval, dan durasi.' + RESET);
+            } else {
+              try {
+                await setLock(lockSettings);
+              } catch (e) {
+                console.log(RED + e.message + RESET);
+              }
+            }
+            await ask('Enter untuk kembali...');
+            continue;
+          }
+
+          if (lockChoice === '3') {
             try {
               const result = await channel.request({ type: 'unlock', token });
               lockActive = false;
@@ -729,7 +746,8 @@ async function session(mode) {
             await ask('Enter untuk lanjut...');
             continue;
           }
-          if (lockChoice === '3') {
+
+          if (lockChoice === '4') {
             const rawVibrationMinutes = (await ask('Durasi vibrator (1-5 menit): ')).trim();
             const vibrationMinutes = Number(rawVibrationMinutes);
             if (!/^\d+$/.test(rawVibrationMinutes) || vibrationMinutes < 1 || vibrationMinutes > 5) {
@@ -762,7 +780,8 @@ async function session(mode) {
             await ask('Enter untuk kembali...');
             continue;
           }
-          if (lockChoice === '4') {
+
+          if (lockChoice === '5') {
             try {
               const result = await channel.request({ type: 'stop_vibration', token });
               console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
@@ -772,7 +791,8 @@ async function session(mode) {
             await ask('Enter untuk kembali...');
             continue;
           }
-          if (lockChoice === '6') {
+
+          if (lockChoice === '7') {
             try {
               const active = getActiveConfig();
               if (!active) {
@@ -794,7 +814,8 @@ async function session(mode) {
             await ask('Enter untuk kembali...');
             continue;
           }
-          if (lockChoice === '7') {
+
+          if (lockChoice === '8') {
             try {
               const result = await channel.request({ type: 'effects_stop', token });
               console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
@@ -802,7 +823,8 @@ async function session(mode) {
             await ask('Enter untuk kembali...');
             continue;
           }
-          if (lockChoice === '5') {
+
+          if (lockChoice === '6') {
             console.log('\n[ FLASHLIGHT ]');
             console.log('[a] AKTIFKAN');
             console.log('[b] MATIKAN');
@@ -848,12 +870,12 @@ async function session(mode) {
             await ask('Enter untuk kembali...');
             continue;
           }
+
           console.log('Pilihan tidak valid.');
           await ask('Enter...');
         }
         continue;
       }
-
       console.log('Pilihan tidak valid.');
       await ask('Enter...');
     }
