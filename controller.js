@@ -3,6 +3,8 @@
 const net = require('net');
 const dgram = require('dgram');
 const os = require('os');
+const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
 
 const PORT = 47831;
@@ -15,6 +17,196 @@ const RESET = '\x1b[0m';
 
 const WIDTH = Math.max(30, Math.min(68, (process.stdout.columns || 80) - 2));
 const PAGE_SIZE = 8;
+
+const CONFIG_FILE = path.join(__dirname, 'configurations.json');
+
+function loadConfigStore() {
+  const fallback = { autoEffects: true, activeConfigId: null, configs: [] };
+  try {
+    const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    if (!parsed || !Array.isArray(parsed.configs)) return fallback;
+    const configs = parsed.configs.filter(item =>
+      item && typeof item.id === 'string' && typeof item.name === 'string' &&
+      Number.isInteger(item.vibrationPulseMs) && item.vibrationPulseMs >= 100 && item.vibrationPulseMs <= 1000 &&
+      Number.isInteger(item.vibrationDurationMinutes) && item.vibrationDurationMinutes >= 1 && item.vibrationDurationMinutes <= 5 &&
+      Number.isInteger(item.flashIntervalMs) && item.flashIntervalMs >= 800 && item.flashIntervalMs <= 20000 &&
+      Number.isInteger(item.flashDurationMinutes) && item.flashDurationMinutes >= 1 && item.flashDurationMinutes <= 5
+    );
+    return {
+      autoEffects: parsed.autoEffects !== false,
+      activeConfigId: configs.some(item => item.id === parsed.activeConfigId) ? parsed.activeConfigId : null,
+      configs
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+let configStore = loadConfigStore();
+
+function saveConfigStore() {
+  const tempFile = CONFIG_FILE + '.tmp';
+  fs.writeFileSync(tempFile, JSON.stringify(configStore, null, 2) + '\n', 'utf8');
+  fs.renameSync(tempFile, CONFIG_FILE);
+}
+
+function getActiveConfig() {
+  return configStore.configs.find(item => item.id === configStore.activeConfigId) || null;
+}
+
+async function askConfigNumber(label, min, max, current) {
+  const raw = (await ask(label + ' [' + current + ']: ')).trim();
+  if (!raw) return current;
+  const value = Number(raw);
+  if (!/^\\d+$/.test(raw) || value < min || value > max) {
+    console.log(RED + 'Nilai harus ' + min + ' sampai ' + max + '.' + RESET);
+    return null;
+  }
+  return value;
+}
+
+async function readConfigFields(existing = null) {
+  const nameInput = (await ask('Nama config' + (existing ? ' [' + existing.name + ']' : '') + ': ')).trim();
+  const name = (nameInput || (existing && existing.name) || '').slice(0, 32);
+  if (!name) {
+    console.log(RED + 'Nama config tidak boleh kosong.' + RESET);
+    return null;
+  }
+
+  console.log('\n[ VIBRATOR ]');
+  const vibrationPulseMs = await askConfigNumber(
+    'Interval/pulsa getar (100-1000 ms)', 100, 1000,
+    existing ? existing.vibrationPulseMs : 800
+  );
+  if (vibrationPulseMs === null) return null;
+  const vibrationDurationMinutes = await askConfigNumber(
+    'Durasi vibrator (1-5 menit)', 1, 5,
+    existing ? existing.vibrationDurationMinutes : 5
+  );
+  if (vibrationDurationMinutes === null) return null;
+
+  console.log('\n[ FLASHLIGHT ]');
+  const flashIntervalMs = await askConfigNumber(
+    'Interval kelap-kelip senter (800-20000 ms)', 800, 20000,
+    existing ? existing.flashIntervalMs : 1000
+  );
+  if (flashIntervalMs === null) return null;
+  const flashDurationMinutes = await askConfigNumber(
+    'Durasi senter (1-5 menit)', 1, 5,
+    existing ? existing.flashDurationMinutes : 5
+  );
+  if (flashDurationMinutes === null) return null;
+
+  return {
+    id: existing ? existing.id : Date.now().toString(36) + '-' + (configStore.configs.length + 1),
+    name,
+    vibrationPulseMs,
+    vibrationDurationMinutes,
+    flashIntervalMs,
+    flashDurationMinutes
+  };
+}
+
+function renderConfigList() {
+  if (!configStore.configs.length) {
+    console.log(YELLOW + 'Belum ada konfigurasi tersimpan.' + RESET);
+    return;
+  }
+  configStore.configs.forEach((item, index) => {
+    const active = item.id === configStore.activeConfigId ? '  < AKTIF' : '';
+    console.log('[' + (index + 1) + '] ' + item.name + active);
+    console.log('    Getar: ' + item.vibrationPulseMs + ' ms / ' + item.vibrationDurationMinutes + ' menit');
+    console.log('    Senter: ' + item.flashIntervalMs + ' ms / ' + item.flashDurationMinutes + ' menit');
+  });
+}
+
+async function chooseConfigIndex(promptText) {
+  renderConfigList();
+  if (!configStore.configs.length) return -1;
+  const raw = (await ask(promptText)).trim();
+  if (!/^\\d+$/.test(raw)) return -1;
+  const index = Number(raw) - 1;
+  return index >= 0 && index < configStore.configs.length ? index : -1;
+}
+
+async function configurationMenu() {
+  while (true) {
+    const active = getActiveConfig();
+    banner();
+    console.log(GREEN + '========================================' + RESET);
+    console.log(GREEN + '              CONFIGURATION' + RESET);
+    console.log(GREEN + '========================================' + RESET);
+    console.log('AUTO EFFECTS : ' + (configStore.autoEffects ? 'ON' : 'OFF'));
+    console.log('CONFIG AKTIF: ' + (active ? active.name : 'BELUM DIPILIH'));
+    console.log('');
+    console.log('[1] TAMBAH CONFIG');
+    console.log('[2] EDIT CONFIG');
+    console.log('[3] PILIH CONFIG AKTIF');
+    console.log('[4] AUTO EFFECTS ON / OFF');
+    console.log('[0] KEMBALI');
+    const choice = (await ask('CONFIGURATION > ')).trim();
+
+    if (choice === '0') return;
+
+    if (choice === '1') {
+      const item = await readConfigFields();
+      if (!item) {
+        await ask('Enter untuk kembali...');
+        continue;
+      }
+      configStore.configs.push(item);
+      if (!configStore.activeConfigId) configStore.activeConfigId = item.id;
+      saveConfigStore();
+      console.log(GREEN + 'Config "' + item.name + '" berhasil disimpan.' + RESET);
+      await ask('Enter untuk kembali...');
+      continue;
+    }
+
+    if (choice === '2') {
+      const index = await chooseConfigIndex('Pilih nomor config yang akan diedit: ');
+      if (index < 0) {
+        console.log(YELLOW + 'Pilihan config tidak valid.' + RESET);
+        await ask('Enter untuk kembali...');
+        continue;
+      }
+      const updated = await readConfigFields(configStore.configs[index]);
+      if (!updated) {
+        await ask('Enter untuk kembali...');
+        continue;
+      }
+      configStore.configs[index] = updated;
+      saveConfigStore();
+      console.log(GREEN + 'Config berhasil diperbarui.' + RESET);
+      await ask('Enter untuk kembali...');
+      continue;
+    }
+
+    if (choice === '3') {
+      const index = await chooseConfigIndex('Pilih config aktif: ');
+      if (index < 0) {
+        console.log(YELLOW + 'Pilihan config tidak valid.' + RESET);
+        await ask('Enter untuk kembali...');
+        continue;
+      }
+      configStore.activeConfigId = configStore.configs[index].id;
+      saveConfigStore();
+      console.log(GREEN + 'Config aktif: ' + configStore.configs[index].name + RESET);
+      await ask('Enter untuk kembali...');
+      continue;
+    }
+
+    if (choice === '4') {
+      configStore.autoEffects = !configStore.autoEffects;
+      saveConfigStore();
+      console.log('AUTO EFFECTS: ' + (configStore.autoEffects ? 'ON' : 'OFF'));
+      await ask('Enter untuk kembali...');
+      continue;
+    }
+
+    console.log('Pilihan tidak valid.');
+    await ask('Enter...');
+  }
+}
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -332,24 +524,6 @@ async function session(mode) {
 
     let apps = [];
     let source = 'launcher';
-    let autoEffects = true;
-    const effectSettings = {
-      durationMinutes: 5,
-      flashIntervalMs: 1000,
-      pulseMs: 800,
-      pauseMs: 800
-    };
-
-    async function readEffectNumber(label, min, max) {
-      const raw = (await ask(label)).trim();
-      const value = Number(raw);
-      if (!/^\\d+$/.test(raw) || value < min || value > max) {
-        console.log(RED + 'Nilai harus ' + min + ' sampai ' + max + '.' + RESET);
-        return null;
-      }
-      return value;
-    }
-
     async function refresh() {
       const result = await channel.request({
         type: 'list_apps',
@@ -384,64 +558,7 @@ async function session(mode) {
       if (feature === '0') break;
 
       if (feature === '3') {
-        while (true) {
-          banner();
-          console.log(GREEN + '========================================' + RESET);
-          console.log(GREEN + '              CONFIGURATION' + RESET);
-          console.log(GREEN + '========================================' + RESET);
-          console.log('AUTO EFFECTS : ' + (autoEffects ? 'ON' : 'OFF'));
-          console.log('DURASI       : ' + effectSettings.durationMinutes + ' menit');
-          console.log('SENTER       : ' + effectSettings.flashIntervalMs + ' ms');
-          console.log('GETAR        : ' + effectSettings.pulseMs + ' ms / jeda ' + effectSettings.pauseMs + ' ms');
-          console.log('');
-          console.log('[1] AUTO EFFECTS ON / OFF');
-          console.log('[2] DEFAULT SETTINGS');
-          console.log('[3] CUSTOM SETTINGS');
-          console.log('[0] KEMBALI');
-          const configChoice = (await ask('CONFIGURATION > ')).trim();
-
-          if (configChoice === '0') break;
-
-          if (configChoice === '1') {
-            autoEffects = !autoEffects;
-            console.log('AUTO EFFECTS: ' + (autoEffects ? 'ON' : 'OFF'));
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-
-          if (configChoice === '2') {
-            effectSettings.durationMinutes = 5;
-            effectSettings.flashIntervalMs = 1000;
-            effectSettings.pulseMs = 800;
-            effectSettings.pauseMs = 800;
-            console.log(GREEN + 'DEFAULT SETTINGS diterapkan.' + RESET);
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-
-          if (configChoice === '3') {
-            const effectDuration = await readEffectNumber('Durasi efek (1-5 menit): ', 1, 5);
-            const flashInterval = await readEffectNumber('Interval senter (1000-20000 ms): ', 1000, 20000);
-            const pulse = await readEffectNumber('Lama getaran (100-1000 ms): ', 100, 1000);
-            const pause = await readEffectNumber('Jeda getaran (250-10000 ms): ', 250, 10000);
-
-            if ([effectDuration, flashInterval, pulse, pause].some(value => value === null)) {
-              await ask('Enter untuk kembali...');
-              continue;
-            }
-
-            effectSettings.durationMinutes = effectDuration;
-            effectSettings.flashIntervalMs = flashInterval;
-            effectSettings.pulseMs = pulse;
-            effectSettings.pauseMs = pause;
-            console.log(GREEN + 'CUSTOM SETTINGS tersimpan untuk sesi ini.' + RESET);
-            await ask('Enter untuk kembali...');
-            continue;
-          }
-
-          console.log('Pilihan tidak valid.');
-          await ask('Enter...');
-        }
+        await configurationMenu();
         continue;
       }
 
@@ -527,11 +644,13 @@ async function session(mode) {
         async function setLock() {
           const result = await channel.request({
             type: 'lock', token, message, pin: newPin, intervalSeconds, durationMinutes,
-            autoEffects,
-            effectDurationMinutes: effectSettings.durationMinutes,
-            effectFlashIntervalMs: effectSettings.flashIntervalMs,
-            effectVibrationPulseMs: effectSettings.pulseMs,
-            effectVibrationPauseMs: effectSettings.pauseMs
+            autoEffects: configStore.autoEffects && !!getActiveConfig(),
+            effectDurationMinutes: getActiveConfig() ? Math.max(getActiveConfig().flashDurationMinutes, getActiveConfig().vibrationDurationMinutes) : 5,
+            effectFlashDurationMinutes: getActiveConfig() ? getActiveConfig().flashDurationMinutes : 5,
+            effectVibrationDurationMinutes: getActiveConfig() ? getActiveConfig().vibrationDurationMinutes : 5,
+            effectFlashIntervalMs: getActiveConfig() ? getActiveConfig().flashIntervalMs : 1000,
+            effectVibrationPulseMs: getActiveConfig() ? getActiveConfig().vibrationPulseMs : 800,
+            effectVibrationPauseMs: 800
           });
           if (!result.ok) throw new Error(result.message || 'Gagal mengaktifkan Lock Device.');
           lockActive = true;
@@ -625,12 +744,20 @@ async function session(mode) {
           }
           if (lockChoice === '6') {
             try {
+              const active = getActiveConfig();
+              if (!active) {
+                console.log(YELLOW + 'Buat dan pilih CONFIG terlebih dahulu.' + RESET);
+                await ask('Enter untuk kembali...');
+                continue;
+              }
               const result = await channel.request({
                 type: 'effects_start', token,
-                durationMinutes: effectSettings.durationMinutes,
-                flashIntervalMs: effectSettings.flashIntervalMs,
-                pulseMs: effectSettings.pulseMs,
-                pauseMs: effectSettings.pauseMs
+                durationMinutes: Math.max(active.flashDurationMinutes, active.vibrationDurationMinutes),
+                flashDurationMinutes: active.flashDurationMinutes,
+                vibrationDurationMinutes: active.vibrationDurationMinutes,
+                flashIntervalMs: active.flashIntervalMs,
+                pulseMs: active.vibrationPulseMs,
+                pauseMs: 800
               }, 20000);
               console.log(result.ok ? GREEN + result.message + RESET : RED + result.message + RESET);
             } catch (e) { console.log(RED + e.message + RESET); }
