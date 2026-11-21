@@ -722,6 +722,13 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
 
   return {
     accessCode,
+    getInfo() {
+      return {
+        dashboardLink: dashboardPageLink || DASHBOARD_URL,
+        bridgeUrl: tunnelUrl || 'BELUM TERSEDIA — tunggu Cloudflared membuat Quick Tunnel',
+        accessCode
+      };
+    },
     close() {
       stopped = true;
       dashboardPageLink = '';
@@ -862,6 +869,7 @@ async function session(mode) {
       console.log('[1] OPEN APP');
       console.log('[2] LOCK DEVICE');
       console.log('[3] CONFIGURATION');
+      console.log('[4] LIHAT LINK BRIDGE & ACCESS CODE');
       console.log('[0] DISCONNECT');
       const feature = (await ask('PILIH FITUR > ')).trim();
 
@@ -869,6 +877,25 @@ async function session(mode) {
 
       if (feature === '3') {
         await configurationMenu();
+        continue;
+      }
+
+      if (feature === '4') {
+        banner();
+        console.log(GREEN + '========================================' + RESET);
+        console.log(GREEN + '          WEB BRIDGE INFORMATION' + RESET);
+        console.log(GREEN + '========================================' + RESET);
+        const webInfo = dashboardBridge ? dashboardBridge.getInfo() : null;
+        if (!webInfo) {
+          console.log(YELLOW + 'Web Bridge belum aktif.' + RESET);
+        } else {
+          console.log(GREEN + '[OPEN HTML] ' + webInfo.dashboardLink + RESET);
+          console.log(GREEN + '[BRIDGE URL] ' + webInfo.bridgeUrl + RESET);
+          console.log(YELLOW + '[ACCESS CODE] ' + webInfo.accessCode + RESET);
+          console.log('');
+          console.log(YELLOW + 'Jaga Access Code tetap rahasia.' + RESET);
+        }
+        await ask('Enter untuk kembali ke menu...');
         continue;
       }
 
