@@ -2,3 +2,5 @@
 *.log
 .env
 node_modules/
+configurations.json
+*.tmp
