@@ -6,6 +6,9 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const http = require('http');
+const crypto = require('crypto');
+const { spawn } = require('child_process');
 
 const PORT = 47831;
 const DISCOVERY_PORT = 47832;
@@ -17,6 +20,10 @@ const RESET = '\x1b[0m';
 
 const WIDTH = Math.max(30, Math.min(68, (process.stdout.columns || 80) - 2));
 const PAGE_SIZE = 8;
+const DASHBOARD_URL = 'https://julliansyahrangga-sketch.github.io/ranggacryzhack-dual-control/';
+const DASHBOARD_ORIGIN = 'https://julliansyahrangga-sketch.github.io';
+const BRIDGE_PORT = 47834;
+let dashboardPageLink = '';
 
 const CONFIG_FILE = path.join(__dirname, 'configurations.json');
 
@@ -226,6 +233,7 @@ function banner() {
   console.log('║                  APP LAUNCHER V2                 ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log(RESET);
+  if (dashboardPageLink) console.log(GREEN + '[HTML DASHBOARD] ' + dashboardPageLink + RESET);
 }
 
 function connectTo(host, port = PORT) {
@@ -425,6 +433,288 @@ function createChannel(socket) {
   };
 }
 
+
+function startDashboardBridge(channel, receiverToken, pairingPin) {
+  const accessCode = crypto.randomBytes(24).toString('hex');
+  let tunnel = null;
+  let tunnelUrl = '';
+  let stopped = false;
+
+  function json(res, status, value) {
+    res.writeHead(status, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    res.end(JSON.stringify(value));
+  }
+
+  function matchesCode(value) {
+    const left = Buffer.from(String(value || ''));
+    const right = Buffer.from(accessCode);
+    return left.length === right.length && crypto.timingSafeEqual(left, right);
+  }
+
+  function readBody(req) {
+    return new Promise((resolve, reject) => {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk;
+        if (body.length > 8192) {
+          reject(new Error('Ukuran request terlalu besar.'));
+          req.destroy();
+        }
+      });
+      req.on('end', () => {
+        try { resolve(JSON.parse(body || '{}')); }
+        catch { reject(new Error('Format JSON tidak valid.')); }
+      });
+      req.on('error', reject);
+    });
+  }
+
+  async function receiverRequest(data, timeout) {
+    const result = await channel.request(data, timeout || 20000);
+    if (result.type === 'error' || result.ok === false) {
+      return { ok: false, message: result.message || result.error || 'Perintah gagal.', result };
+    }
+    return { ok: true, message: result.message || 'Perintah diterima.', result };
+  }
+
+  async function dispatch(body) {
+    const action = String(body.action || '');
+
+    if (action === 'unlock') {
+      return receiverRequest({ type: 'unlock', token: receiverToken });
+    }
+
+    if (action === 'open_app') {
+      const pkg = String(body.package || '');
+      if (!/^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$/.test(pkg)) {
+        throw new Error('Package aplikasi tidak valid.');
+      }
+      return receiverRequest({ type: 'open_app', token: receiverToken, package: pkg }, 30000);
+    }
+
+    if (action === 'lock_start') {
+      const lockPin = String(body.pin || '');
+      const intervalSeconds = Number(body.intervalSeconds);
+      const durationMinutes = Number(body.durationMinutes);
+      if (!/^\d{4}$/.test(lockPin)) throw new Error('PIN Lock harus tepat 4 digit.');
+      if (lockPin === pairingPin) throw new Error('PIN Lock harus berbeda dari PIN pairing.');
+      if (!Number.isInteger(intervalSeconds) || intervalSeconds < 1 || intervalSeconds > 30) {
+        throw new Error('Interval harus 1 sampai 30 detik.');
+      }
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5) {
+        throw new Error('Durasi harus 1 sampai 5 menit.');
+      }
+      const activeConfig = getActiveConfig();
+      return receiverRequest({
+        type: 'lock',
+        token: receiverToken,
+        message: String(body.message || 'Lock Device aktif.').slice(0, 500),
+        pin: lockPin,
+        intervalSeconds,
+        durationMinutes,
+        autoEffects: configStore.autoEffects && !!activeConfig,
+        effectDurationMinutes: activeConfig ? Math.max(activeConfig.flashDurationMinutes, activeConfig.vibrationDurationMinutes) : 5,
+        effectFlashDurationMinutes: activeConfig ? activeConfig.flashDurationMinutes : 5,
+        effectVibrationDurationMinutes: activeConfig ? activeConfig.vibrationDurationMinutes : 5,
+        effectFlashIntervalMs: activeConfig ? activeConfig.flashIntervalMs : 1000,
+        effectVibrationPulseMs: activeConfig ? activeConfig.vibrationPulseMs : 800,
+        effectVibrationPauseMs: 800
+      }, 30000);
+    }
+
+    if (action === 'vibrate') {
+      const durationMinutes = Number(body.durationMinutes);
+      const pulseMs = Number(body.pulseMs);
+      const pauseMs = Number(body.pauseMs);
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5 ||
+          !Number.isInteger(pulseMs) || pulseMs < 100 || pulseMs > 1000 ||
+          !Number.isInteger(pauseMs) || pauseMs < 250 || pauseMs > 10000) {
+        throw new Error('Durasi 1-5 menit, pulsa 100-1000 ms, dan jeda 250-10000 ms.');
+      }
+      return receiverRequest({
+        type: 'vibrate', token: receiverToken, durationMinutes, pulseMs, pauseMs
+      });
+    }
+
+    if (action === 'stop_vibration') {
+      return receiverRequest({ type: 'stop_vibration', token: receiverToken });
+    }
+
+    if (action === 'flashlight_on' || action === 'flashlight_off') {
+      return receiverRequest({ type: action, token: receiverToken });
+    }
+
+    if (action === 'flashlight_blink') {
+      const durationMinutes = Number(body.durationMinutes);
+      const intervalMs = Number(body.intervalMs);
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1 || durationMinutes > 5 ||
+          !Number.isInteger(intervalMs) || intervalMs < 800 || intervalMs > 20000) {
+        throw new Error('Durasi 1-5 menit dan interval senter 800-20000 ms.');
+      }
+      return receiverRequest({
+        type: 'flashlight_blink', token: receiverToken, durationMinutes, intervalMs
+      });
+    }
+
+    if (action === 'effects_start') {
+      const active = getActiveConfig();
+      if (!active) throw new Error('Buat dan pilih CONFIG terlebih dahulu melalui Termux.');
+      return receiverRequest({
+        type: 'effects_start',
+        token: receiverToken,
+        durationMinutes: Math.max(active.flashDurationMinutes, active.vibrationDurationMinutes),
+        flashDurationMinutes: active.flashDurationMinutes,
+        vibrationDurationMinutes: active.vibrationDurationMinutes,
+        flashIntervalMs: active.flashIntervalMs,
+        pulseMs: active.vibrationPulseMs,
+        pauseMs: 800
+      });
+    }
+
+    if (action === 'effects_stop') {
+      return receiverRequest({ type: 'effects_stop', token: receiverToken });
+    }
+
+    throw new Error('Aksi dashboard tidak dikenal.');
+  }
+
+  const server = http.createServer(async (req, res) => {
+    const origin = req.headers.origin || '';
+    if (origin && origin !== DASHBOARD_ORIGIN) {
+      json(res, 403, { ok: false, message: 'Origin tidak diizinkan.' });
+      return;
+    }
+
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', DASHBOARD_ORIGIN);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+      res.setHeader('Access-Control-Max-Age', '600');
+    }
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const pathname = String(req.url || '').split('?')[0];
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      json(res, 405, { ok: false, message: 'Method tidak didukung.' });
+      return;
+    }
+
+    const auth = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (!matchesCode(auth)) {
+      json(res, 401, { ok: false, message: 'Kode akses dashboard salah atau belum diisi.' });
+      return;
+    }
+
+    try {
+      if (req.method === 'GET' && pathname === '/api/status') {
+        const result = await channel.request({ type: 'lock_status', token: receiverToken }, 12000);
+        json(res, 200, {
+          ok: true,
+          connected: true,
+          lockActive: result.active === true,
+          intervalSeconds: Number(result.intervalSeconds) || 0,
+          durationMinutes: Number(result.durationMinutes) || 0,
+          autoEffects: configStore.autoEffects,
+          activeConfig: getActiveConfig() ? getActiveConfig().name : null
+        });
+        return;
+      }
+
+      if (req.method === 'GET' && pathname === '/api/apps') {
+        const result = await channel.request({ type: 'list_apps', token: receiverToken }, 30000);
+        if (result.type !== 'apps') {
+          json(res, 502, { ok: false, message: result.message || 'Gagal memuat aplikasi.' });
+          return;
+        }
+        json(res, 200, { ok: true, apps: result.apps || [] });
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/command') {
+        const body = await readBody(req);
+        const result = await dispatch(body);
+        json(res, result.ok ? 200 : 502, result);
+        return;
+      }
+
+      json(res, 404, { ok: false, message: 'Endpoint tidak ditemukan.' });
+    } catch (error) {
+      json(res, 400, { ok: false, message: error.message || 'Request gagal.' });
+    }
+  });
+
+  dashboardPageLink = DASHBOARD_URL;
+  console.log(GREEN + '\n[WEB DASHBOARD] Server lokal disiapkan pada 127.0.0.1:' + BRIDGE_PORT + RESET);
+  console.log(YELLOW + '[WEB ACCESS CODE] ' + accessCode + RESET);
+  console.log(YELLOW + '[WEB] Kode akses ini rahasia. Jangan bagikan kepada orang lain.' + RESET);
+
+  server.on('error', error => {
+    console.log(RED + '[WEB BRIDGE] ' + error.message + RESET);
+    console.log(YELLOW + '[WEB] Jalankan tunnel manual setelah port tersedia: cloudflared tunnel --url http://127.0.0.1:' + BRIDGE_PORT + RESET);
+  });
+
+  server.listen(BRIDGE_PORT, '127.0.0.1', () => {
+    console.log(GREEN + '[WEB BRIDGE] HTTP API siap.' + RESET);
+    try {
+      tunnel = spawn('cloudflared', ['tunnel', '--url', 'http://127.0.0.1:' + BRIDGE_PORT], {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      let foundUrl = false;
+      const inspectTunnelOutput = chunk => {
+        const match = String(chunk).match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i);
+        if (match && !foundUrl) {
+          foundUrl = true;
+          tunnelUrl = match[0];
+          dashboardPageLink = DASHBOARD_URL + '?bridge=' + encodeURIComponent(tunnelUrl);
+          console.log(GREEN + '\n========================================' + RESET);
+          console.log(GREEN + '         HTML DASHBOARD READY' + RESET);
+          console.log(GREEN + '========================================' + RESET);
+          console.log(GREEN + '[OPEN HTML] ' + dashboardPageLink + RESET);
+          console.log(GREEN + '[BRIDGE URL] ' + tunnelUrl + RESET);
+          console.log(YELLOW + '[ACCESS CODE] ' + accessCode + RESET);
+          console.log(YELLOW + 'Masukkan kode akses tersebut pada halaman HTML.' + RESET);
+        }
+      };
+
+      tunnel.stdout.on('data', inspectTunnelOutput);
+      tunnel.stderr.on('data', inspectTunnelOutput);
+      tunnel.on('error', error => {
+        if (!stopped) {
+          console.log(YELLOW + '[WEB TUNNEL] Cloudflared tidak dapat dijalankan: ' + error.message + RESET);
+          console.log(YELLOW + '[WEB TUNNEL] Buka Termux lain dan jalankan: cloudflared tunnel --url http://127.0.0.1:' + BRIDGE_PORT + RESET);
+          console.log(YELLOW + '[WEB TUNNEL] Masukkan URL trycloudflare yang muncul ke kolom Bridge URL pada HTML.' + RESET);
+        }
+      });
+      tunnel.on('exit', (code, signal) => {
+        if (!stopped && code !== 0) console.log(YELLOW + '[WEB TUNNEL] Tunnel berhenti. Koneksi HTML akan terputus.' + RESET);
+      });
+    } catch (error) {
+      console.log(YELLOW + '[WEB TUNNEL] Jalankan manual: cloudflared tunnel --url http://127.0.0.1:' + BRIDGE_PORT + RESET);
+    }
+  });
+
+  return {
+    accessCode,
+    close() {
+      stopped = true;
+      dashboardPageLink = '';
+      if (tunnel && !tunnel.killed) tunnel.kill('SIGTERM');
+      try { server.close(); } catch {}
+    }
+  };
+}
+
 function clip(value, max) {
   value = String(value || '');
 
@@ -519,8 +809,11 @@ async function session(mode) {
     }
 
     const token = paired.token;
+    const dashboardBridge = startDashboardBridge(channel, token, pin);
 
     console.log(GREEN + '[CONNECTED]' + RESET);
+    console.log(GREEN + '[PAIRING] Disetujui oleh HP Target.' + RESET);
+    console.log(GREEN + '[DASHBOARD] Link HTML akan tampil di bagian atas menu.' + RESET);
 
     let apps = [];
     let source = 'launcher';
@@ -693,6 +986,11 @@ async function session(mode) {
             const newPin = (await ask('PIN LOCK BARU (4 digit, berbeda dari PIN pairing): ')).trim();
             if (!/^\d{4}$/.test(newPin)) {
               console.log(RED + 'PIN Lock harus tepat 4 digit.' + RESET);
+              await ask('Enter untuk kembali...');
+              continue;
+            }
+            if (newPin === pin) {
+              console.log(RED + 'PIN Lock harus berbeda dari PIN pairing.' + RESET);
               await ask('Enter untuk kembali...');
               continue;
             }
@@ -880,6 +1178,7 @@ async function session(mode) {
       await ask('Enter...');
     }
   } finally {
+    dashboardBridge.close();
     socket.end();
   }
 }
