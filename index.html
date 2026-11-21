@@ -68,15 +68,15 @@ h1{font-size:clamp(25px,4vw,35px);letter-spacing:.4px;margin:8px 0 4px;line-heig
 
 <div class="content">
 <section class="page active" id="page-overview">
-  <div class="head-row"><div><div class="eyebrow">REMOTE OPERATIONS INTERFACE · V1.1</div><h1>COMMAND CENTER</h1><div class="subtitle">Dashboard untuk HP yang sudah dipasangkan dan menyetujui koneksi.</div></div><div class="session-chip">SESSION STATUS<b id="sessionStatus">WAITING FOR BRIDGE</b></div></div>
-  <div class="warning"><strong>PAIRING FLOW:</strong> jalankan pairing terlebih dahulu dari Termux Controller. Di HP Target, pemilik harus mengetik <strong>y</strong> pada prompt persetujuan. Jangan bagikan kode akses dashboard.</div>
+  <div class="head-row"><div><div class="eyebrow">REMOTE OPERATIONS INTERFACE · V1.1</div><h1>COMMAND CENTER</h1><div class="subtitle">Dashboard kontrol untuk perangkat yang sudah dipasangkan melalui PIN.</div></div><div class="session-chip">SESSION STATUS<b id="sessionStatus">WAITING FOR BRIDGE</b></div></div>
+  <div class="warning"><strong>PAIRING FLOW:</strong> jalankan pairing terlebih dahulu dari Termux Controller. Setelah pairing berhasil, buka link HTML yang dicetak Termux secara manual pada perangkat Controller. Halaman ini tidak membuka Chrome berulang kali di HP Target. Jangan bagikan kode akses dashboard.</div>
 
   <div class="panel">
     <div class="panel-head"><div class="panel-title">CONNECT DASHBOARD TO TERMUX</div><span class="panel-hint">SECURE ACCESS CODE REQUIRED</span></div>
     <form id="connectForm" class="form-grid">
       <div class="field full"><label for="bridgeUrl">CLOUDFLARE BRIDGE URL</label><input id="bridgeUrl" type="url" inputmode="url" placeholder="https://xxxxx.trycloudflare.com" autocomplete="url" required></div>
       <div class="field full"><label for="accessCode">WEB ACCESS CODE FROM TERMUX</label><input id="accessCode" type="password" placeholder="Paste access code printed by Controller" autocomplete="off" required></div>
-      <div class="field full"><div class="btn-row"><button class="btn" id="connectBtn" type="submit">CONNECT SESSION</button><button class="btn secondary" id="disconnectBtn" type="button" disabled>DISCONNECT</button></div><div class="form-status" id="connectStatus" aria-live="polite">Masukkan URL tunnel dan kode akses yang ditampilkan Termux setelah pairing.</div></div>
+      <div class="field full"><div class="btn-row"><button class="btn" id="connectBtn" type="submit">CONNECT SESSION</button><button class="btn secondary" id="disconnectBtn" type="button" disabled>DISCONNECT</button></div><div class="form-status" id="connectStatus" aria-live="polite">Link HTML dari Termux otomatis mengisi Bridge URL. Masukkan Access Code yang dicetak Termux, lalu tekan CONNECT SESSION. Dashboard dibuka manual pada perangkat Controller.</div></div>
     </form>
   </div>
 
@@ -90,7 +90,7 @@ h1{font-size:clamp(25px,4vw,35px);letter-spacing:.4px;margin:8px 0 4px;line-heig
   <div class="grid-main">
     <div class="panel"><div class="panel-head"><div class="panel-title">TARGET DEVICE</div><div class="panel-hint">LIVE SESSION</div></div>
       <div class="device-card"><div class="device-symbol">▣</div><div><div class="device-name" id="deviceName">No device connected</div><div class="device-meta" id="deviceMeta">Awaiting authorized Termux session</div></div><div class="device-status" id="deviceStatus">NOT PAIRED</div></div>
-      <div class="pair-flow"><div class="step"><div class="step-no">STEP 01</div><strong>Start Receiver</strong><span>Jalankan Receiver di Termux Target.</span></div><div class="step"><div class="step-no">STEP 02</div><strong>Pair in Termux</strong><span>Masukkan IP, port, PIN, lalu setujui di Target.</span></div><div class="step"><div class="step-no">STEP 03</div><strong>Open Dashboard</strong><span>Buka link yang dicetak Controller.</span></div></div>
+      <div class="pair-flow"><div class="step"><div class="step-no">STEP 01</div><strong>Start Receiver</strong><span>Jalankan Receiver di Termux Target.</span></div><div class="step"><div class="step-no">STEP 02</div><strong>Pair in Termux</strong><span>Masukkan IP, port, dan PIN Pairing yang benar pada Controller.</span></div><div class="step"><div class="step-no">STEP 03</div><strong>Open Dashboard</strong><span>Buka link yang dicetak Controller.</span></div></div>
     </div>
     <div class="panel"><div class="panel-head"><div class="panel-title">SESSION DETAILS</div><div class="panel-hint">CURRENT STATE</div></div>
       <div class="info-row"><span>Receiver TCP</span><span>47831</span></div><div class="info-row"><span>Bridge HTTP</span><span>127.0.0.1:47834</span></div><div class="info-row"><span>Bridge transport</span><span>Cloudflare HTTPS</span></div><div class="info-row"><span>Active config</span><span id="activeConfig">Not available</span></div><div class="info-row"><span>Auto effects</span><span id="autoEffects">Unknown</span></div>
