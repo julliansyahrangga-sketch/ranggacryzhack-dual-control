@@ -170,6 +170,14 @@ h1{font-size:clamp(25px,4vw,35px);letter-spacing:.4px;margin:8px 0 4px;line-heig
   let bridgeBase='';
   let accessCode='';
   let connected=false;
+  function isQuickTunnelUrl(value){
+    try{
+      const parsed=new URL(value);
+      return parsed.protocol==='https:' &&
+        /^[a-z0-9]+(?:-[a-z0-9]+)*\.trycloudflare\.com$/i.test(parsed.hostname) &&
+        parsed.hostname.toLowerCase()!=='api.trycloudflare.com';
+    }catch(_){return false;}
+  }
   let pollHandle=null;
   let logs=[];
 
@@ -278,7 +286,7 @@ h1{font-size:clamp(25px,4vw,35px);letter-spacing:.4px;margin:8px 0 4px;line-heig
     event.preventDefault();
     const url=$('bridgeUrl').value.trim().replace(/\/+$/,'');
     const code=$('accessCode').value.trim();
-    if(!/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(url)){
+    if(!isQuickTunnelUrl(url)){
       $('connectStatus').textContent='Gunakan URL HTTPS Cloudflare Tunnel yang valid.';
       return;
     }
@@ -365,7 +373,7 @@ h1{font-size:clamp(25px,4vw,35px);letter-spacing:.4px;margin:8px 0 4px;line-heig
 
   const params=new URLSearchParams(location.search);
   const presetBridge=params.get('bridge');
-  if(presetBridge&&/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(presetBridge)){
+  if(presetBridge&&isQuickTunnelUrl(presetBridge)){
     $('bridgeUrl').value=presetBridge;
     $('accessCode').focus();
   }
