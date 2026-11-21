@@ -238,6 +238,11 @@ const server = net.createServer(socket => {
       console.log('PIN Pairing valid. Periksa apakah kamu mengenali perangkat Controller.');
       const approval = (await ask('IZINKAN PAIRING? Ketik y untuk setuju, selain itu ditolak [y/N]: ')).trim().toLowerCase();
 
+      if (socket.destroyed) {
+        console.log(YELLOW + '[PAIRING] Controller sudah terputus sebelum persetujuan selesai.' + RESET);
+        return;
+      }
+
       if (approval !== 'y') {
         send(socket, protocol === 'legacy'
           ? { ok: false, error: 'Pairing ditolak oleh pemilik Target.' }
