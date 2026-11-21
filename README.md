@@ -167,41 +167,75 @@ Tekan Enter. Jika ditolak, Controller tidak akan terhubung.
 
 ## 8. CARA MENGGUNAKAN FITUR
 
-Setelah pairing disetujui, menu Controller menampilkan:
+Setelah pairing disetujui oleh pemilik HP Target, menu Controller tetap berjalan di Termux:
 
-- `1` — OPEN APP: menampilkan daftar aplikasi pihak ketiga di Target dan meminta Android membuka aplikasi yang dipilih.
-- `2` — LOCK DEVICE: membuka halaman lokal Lock di Target dan menampilkan kontrol Lock/Unlock.
-- `0` — DISCONNECT: memutus koneksi Controller.
+- `1` — OPEN APP.
+- `2` — LOCK DEVICE.
+- `3` — CONFIGURATION.
+- `0` — DISCONNECT.
 
-Di dalam menu LOCK DEVICE:
-
-- `1` — LOCK.
-- `2` — UNLOCK.
-- `3` — VIBRATOR.
-- `4` — STOP VIBRATOR.
+Di menu LOCK DEVICE:
+- `1` — masukkan pesan, PIN Lock, interval, dan durasi; lalu mulai sesi.
+- `2` — mulai Lock dari pengaturan yang sudah diisi.
+- `3` — UNLOCK.
+- `4` — VIBRATOR.
+- `5` — STOP VIBRATOR.
+- `6` — FLASHLIGHT.
+- `7` — mulai senter + vibrator dari konfigurasi aktif.
+- `8` — matikan senter + vibrator.
 - `0` — kembali.
 
-### Pengaturan VIBRATOR
+PIN Lock harus 4 digit dan berbeda dari PIN Pairing. Pemilik Target dapat menghentikan sesi Lock melalui PIN lokal pada halaman Lock.
 
-Saat memilih `3`, Controller meminta tiga nilai:
+## 8A. HTML REMOTE CONTROL DASHBOARD
 
-| Pengaturan | Batas |
-|---|---:|
-| Durasi sesi | 1–5 menit |
-| Lama getaran setiap pulsa | 100–1000 ms |
-| Jeda antar-getaran | 250–10000 ms |
+Dashboard HTML dapat dipakai **bersamaan dengan menu Termux**. Pairing tetap dilakukan dari Termux Controller, bukan dari browser.
 
-Getaran akan berhenti otomatis setelah durasi berakhir. Getaran juga dapat dihentikan dengan pilihan `4`, perintah UNLOCK, saat Controller terputus, atau saat Receiver dihentikan dengan `CTRL + C`.
+### Alur koneksi
 
-### Halaman Local Lock
+1. Jalankan Receiver di Termux Target dan Controller di Termux Controller seperti biasa.
+2. Saat Controller memasukkan PIN, Termux Target menampilkan IP perangkat yang meminta akses. Pemilik Target harus mengetik `y` untuk menyetujui pairing.
+3. Setelah pairing berhasil, Controller menyiapkan HTTP bridge lokal pada `127.0.0.1:47834` dan mencoba menjalankan Cloudflare Quick Tunnel secara otomatis.
+4. Buka link HTML yang ditampilkan paling atas di menu Controller.
+5. Masukkan **Web Access Code** yang dicetak oleh Termux Controller ke halaman HTML. Jangan bagikan kode ini.
+6. Setelah status Connected, gunakan dashboard dan menu Termux secara bergantian. Kedua antarmuka memakai sesi Controller yang sama.
 
-Halaman lokal berjalan di Target pada:
+### Jika Cloudflared tidak berjalan otomatis
 
-```text
-http://127.0.0.1:47833
+Pasang/siapkan `cloudflared` pada HP Controller. Buka sesi/tab Termux lain pada HP Controller dan jalankan:
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:47834
 ```
 
-Halaman menyediakan kolom PIN dan tombol darurat `RanggaCryzSOS`. Gunakan fitur Lock hanya pada perangkat sendiri dengan durasi yang singkat. Pembukaan ulang Chrome dapat mengganggu penggunaan HP; pemilik Target tetap dapat menghentikan sesi melalui SOS, PIN yang benar, atau Controller.
+Salin URL `https://....trycloudflare.com` yang muncul, lalu masukkan ke kolom **Cloudflare Bridge URL** pada dashboard. Kode akses tetap diambil dari Termux Controller.
+
+Jangan hentikan proses Controller atau Cloudflare Tunnel saat dashboard sedang digunakan. Saat sesi Controller diputus, bridge dan tunnel yang dibuat Controller akan dihentikan.
+
+### GitHub Pages
+
+File dashboard berada di `index.html`. Aktifkan GitHub Pages pada repository:
+- Settings → Pages.
+- Source: Deploy from a branch.
+- Branch: `main`.
+- Folder: `/(root)`.
+- Save.
+
+Alamat halaman:
+`https://julliansyahrangga-sketch.github.io/ranggacryzhack-dual-control/`
+
+### Fitur dashboard
+
+- Status koneksi dan status Lock.
+- Melihat daftar aplikasi pihak ketiga dan meminta Android membuka aplikasi yang dipilih.
+- Memulai sesi Lock dengan konfirmasi, lalu menghentikannya melalui UNLOCK.
+- Tes vibrator dengan durasi terbatas dan tombol STOP.
+- Menyalakan atau mematikan flashlight.
+- Menjalankan atau menghentikan konfigurasi AUTO EFFECTS yang sudah disimpan di Controller.
+
+Dashboard tidak melakukan pairing sendiri, tidak menyembunyikan status koneksi, dan tidak membaca isi layar atau pesan perangkat. Semua kontrol hanya tersedia selama sesi Controller yang dipasangkan dan disetujui masih aktif.
+
+**Keamanan:** URL tunnel dan Web Access Code bersifat rahasia. Jangan masukkan kode akses pada halaman selain GitHub Pages resmi proyek ini. Tutup dashboard dan putuskan sesi setelah selesai.
 
 ## 9. MENJALANKAN LAGI SETELAH TERMUX DITUTUP
 
