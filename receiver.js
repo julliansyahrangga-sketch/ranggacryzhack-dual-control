@@ -235,22 +235,7 @@ const server = net.createServer(socket => {
       protocol = isLegacy ? 'legacy' : 'v2';
       console.log(YELLOW + '\nPERMINTAAN PAIRING' + RESET);
       console.log('Controller meminta akses dari IP: ' + (socket.remoteAddress || 'tidak diketahui'));
-      console.log('PIN Pairing valid. Periksa apakah kamu mengenali perangkat Controller.');
-      const approval = (await ask('IZINKAN PAIRING? Ketik y untuk setuju, selain itu ditolak [y/N]: ')).trim().toLowerCase();
-
-      if (socket.destroyed) {
-        console.log(YELLOW + '[PAIRING] Controller sudah terputus sebelum persetujuan selesai.' + RESET);
-        return;
-      }
-
-      if (approval !== 'y') {
-        send(socket, protocol === 'legacy'
-          ? { ok: false, error: 'Pairing ditolak oleh pemilik Target.' }
-          : { type: 'pair_rejected', message: 'Pairing ditolak oleh pemilik Target.' });
-        console.log(YELLOW + '[PAIRING] Permintaan ditolak.' + RESET);
-        socket.end();
-        return;
-      }
+      console.log('PIN Pairing valid. Koneksi Controller diterima otomatis.');
 
       paired = true;
       activeSocket = socket;
@@ -262,7 +247,7 @@ const server = net.createServer(socket => {
         send(socket, { type: 'paired', token });
       }
 
-      console.log(GREEN + '[PAIRED] Controller disetujui dan terhubung.' + RESET);
+      console.log(GREEN + '[PAIRED] Controller terhubung.' + RESET);
       return;
     }
 
