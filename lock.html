@@ -25,7 +25,6 @@ input:focus{border-color:#00ff99;box-shadow:0 0 10px #00ff8830}
 button{width:100%;padding:14px;margin-top:12px;border:0;border-radius:9px;background:linear-gradient(90deg,#00ff88,#00aaff);color:#00150d;font-weight:bold;cursor:pointer}
 button:active{transform:scale(.98)}
 #result{min-height:18px;text-align:center;font-size:12px;margin-top:12px;color:#ffb0b0;line-height:1.5}
-.sos{background:#35151a;color:#ff9da5;border:1px solid #a8424d;margin-top:10px}.sos:active{transform:scale(.98)}
 .brand{text-align:right;margin-top:22px;color:#00ff99;text-shadow:0 0 9px #00ff99;font-size:12px;font-weight:bold}
 .foot{text-align:center;color:#52636d;font-size:10px;margin-top:18px}
 </style>
@@ -46,7 +45,6 @@ button:active{transform:scale(.98)}
    <input id="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="off" aria-label="PIN Lock 4 digit" required>
    <button type="submit">UNLOCK DEVICE</button>
   </form>
-  <button type="button" class="sos" id="sosButton">STOP SESSION NOW · SOS</button>
   <div id="result" aria-live="polite"></div>
  </section>
  <div class="brand">RanggaCryz☠️</div>
@@ -81,16 +79,6 @@ $('unlockForm').addEventListener('submit',async e=>{
   await refresh();
  }catch{$('result').textContent='Receiver tidak dapat dijangkau.';}
  finally{busy=false;}
-});
-$('sosButton').addEventListener('click',async()=>{
- if(!confirm('Hentikan sesi Lock dan semua efek sekarang?'))return;
- $('result').textContent='Menghentikan sesi...';
- try{
-  const r=await fetch('/api/emergency-stop',{method:'POST'});
-  const d=await r.json();
-  $('result').textContent=d.message||'Sesi dihentikan.';
-  await refresh();
- }catch{$('result').textContent='Receiver tidak dapat dijangkau.';}
 });
 refresh();
 setInterval(refresh,2000);
