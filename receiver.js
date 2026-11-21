@@ -234,7 +234,18 @@ const server = net.createServer(socket => {
 
       protocol = isLegacy ? 'legacy' : 'v2';
       console.log(YELLOW + '\nPERMINTAAN PAIRING' + RESET);
-      console.log('PIN valid. Koneksi Controller diterima otomatis.');
+      console.log('Controller meminta akses dari IP: ' + (socket.remoteAddress || 'tidak diketahui'));
+      console.log('PIN Pairing valid. Periksa apakah kamu mengenali perangkat Controller.');
+      const approval = (await ask('IZINKAN PAIRING? Ketik y untuk setuju, selain itu ditolak [y/N]: ')).trim().toLowerCase();
+
+      if (approval !== 'y') {
+        send(socket, protocol === 'legacy'
+          ? { ok: false, error: 'Pairing ditolak oleh pemilik Target.' }
+          : { type: 'pair_rejected', message: 'Pairing ditolak oleh pemilik Target.' });
+        console.log(YELLOW + '[PAIRING] Permintaan ditolak.' + RESET);
+        socket.end();
+        return;
+      }
 
       paired = true;
       activeSocket = socket;
@@ -246,7 +257,7 @@ const server = net.createServer(socket => {
         send(socket, { type: 'paired', token });
       }
 
-      console.log(GREEN + '[PAIRED] Controller terhubung.' + RESET);
+      console.log(GREEN + '[PAIRED] Controller disetujui dan terhubung.' + RESET);
       return;
     }
 
@@ -276,6 +287,10 @@ const server = net.createServer(socket => {
       const requestedPin = String(data.pin || '');
       if (!/^\d{4}$/.test(requestedPin)) {
         send(socket, { type: 'lock_result', ok: false, message: 'PIN Lock harus tepat 4 digit.' });
+        return;
+      }
+      if (requestedPin === PIN) {
+        send(socket, { type: 'lock_result', ok: false, message: 'PIN Lock harus berbeda dari PIN Pairing.' });
         return;
       }
       LOCK_PIN = requestedPin;
@@ -326,7 +341,15 @@ const server = net.createServer(socket => {
       } catch (error) {
         stopChromeSpam();
         lockState.active = false;
-        console.log(YELLOW + '[LOCAL LOCK] Buka halaman Lock manual: http://127.0.0.1:' + LOCK_PORT + RESET);
+        stopVibration();
+        stopFlashlight();
+        send(socket, {
+          type: 'lock_result',
+          ok: false,
+          message: 'Gagal membuka halaman Lock: ' + error.message + '. Target dapat membuka halaman secara manual di http://127.0.0.1:' + LOCK_PORT
+        });
+        console.log(YELLOW + '[LOCAL LOCK] Gagal memulai sesi: ' + error.message + RESET);
+        return;
       }
       if (lockState.active && autoEffects) {
         try {
