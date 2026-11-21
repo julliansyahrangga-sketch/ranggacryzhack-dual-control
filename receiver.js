@@ -279,10 +279,6 @@ const server = net.createServer(socket => {
         send(socket, { type: 'lock_result', ok: false, message: 'PIN Lock harus tepat 4 digit.' });
         return;
       }
-      if (requestedPin === PIN) {
-        send(socket, { type: 'lock_result', ok: false, message: 'PIN Lock harus berbeda dari PIN Pairing.' });
-        return;
-      }
       LOCK_PIN = requestedPin;
       const requestedInterval = Number(data.intervalSeconds);
       const intervalSeconds = Number.isFinite(requestedInterval)
@@ -331,15 +327,7 @@ const server = net.createServer(socket => {
       } catch (error) {
         stopChromeSpam();
         lockState.active = false;
-        stopVibration();
-        stopFlashlight();
-        send(socket, {
-          type: 'lock_result',
-          ok: false,
-          message: 'Gagal membuka halaman Lock: ' + error.message + '. Target dapat membuka halaman secara manual di http://127.0.0.1:' + LOCK_PORT
-        });
-        console.log(YELLOW + '[LOCAL LOCK] Gagal memulai sesi: ' + error.message + RESET);
-        return;
+        console.log(YELLOW + '[LOCAL LOCK] Buka halaman Lock manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
       if (lockState.active && autoEffects) {
         try {
