@@ -795,6 +795,7 @@ async function session(mode) {
 
   const socket = await connectTo(host, port);
   const channel = createChannel(socket);
+  let dashboardBridge = null;
 
   try {
     console.log(YELLOW + '\nMenunggu persetujuan HP Target...' + RESET);
@@ -809,7 +810,7 @@ async function session(mode) {
     }
 
     const token = paired.token;
-    const dashboardBridge = startDashboardBridge(channel, token, pin);
+    dashboardBridge = startDashboardBridge(channel, token, pin);
 
     console.log(GREEN + '[CONNECTED]' + RESET);
     console.log(GREEN + '[PAIRING] Disetujui oleh HP Target.' + RESET);
@@ -1178,7 +1179,7 @@ async function session(mode) {
       await ask('Enter...');
     }
   } finally {
-    dashboardBridge.close();
+    if (dashboardBridge) dashboardBridge.close();
     socket.end();
   }
 }
