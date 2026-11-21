@@ -672,10 +672,15 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
 
       let foundUrl = false;
       const inspectTunnelOutput = chunk => {
-        const match = String(chunk).match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i);
-        if (match && !foundUrl) {
+        const output = String(chunk);
+        const matches = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/ig) || [];
+        for (const candidate of matches) {
+          const host = candidate.replace(/^https:\/\//i, '').toLowerCase();
+          // "api.trycloudflare.com" is an API host, not a generated Quick Tunnel.
+          if (host === 'api.trycloudflare.com' || host === 'www.trycloudflare.com') continue;
+          if (foundUrl || stopped) continue;
           foundUrl = true;
-          tunnelUrl = match[0];
+          tunnelUrl = candidate;
           dashboardPageLink = DASHBOARD_URL + '?bridge=' + encodeURIComponent(tunnelUrl);
           console.log(GREEN + '\n========================================' + RESET);
           console.log(GREEN + '         HTML DASHBOARD READY' + RESET);
@@ -684,6 +689,7 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
           console.log(GREEN + '[BRIDGE URL] ' + tunnelUrl + RESET);
           console.log(YELLOW + '[ACCESS CODE] ' + accessCode + RESET);
           console.log(YELLOW + 'Masukkan kode akses tersebut pada halaman HTML.' + RESET);
+          return;
         }
       };
 
@@ -691,13 +697,23 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
       tunnel.stderr.on('data', inspectTunnelOutput);
       tunnel.on('error', error => {
         if (!stopped) {
-          console.log(YELLOW + '[WEB TUNNEL] Cloudflared tidak dapat dijalankan: ' + error.message + RESET);
-          console.log(YELLOW + '[WEB TUNNEL] Buka Termux lain dan jalankan: cloudflared tunnel --url http://127.0.0.1:' + BRIDGE_PORT + RESET);
-          console.log(YELLOW + '[WEB TUNNEL] Masukkan URL trycloudflare yang muncul ke kolom Bridge URL pada HTML.' + RESET);
+          tunnelUrl = '';
+          dashboardPageLink = DASHBOARD_URL;
+          console.log(YELLOW + '[WEB TUNNEL] Cloudflared gagal dijalankan: ' + error.message + RESET);
+          console.log(YELLOW + '[WEB TUNNEL] Periksa instalasi dengan: cloudflared --version' + RESET);
+          console.log(YELLOW + '[WEB TUNNEL] Jika perlu, jalankan manual: cloudflared tunnel --url http://127.0.0.1:' + BRIDGE_PORT + RESET);
         }
       });
       tunnel.on('exit', (code, signal) => {
-        if (!stopped && code !== 0) console.log(YELLOW + '[WEB TUNNEL] Tunnel berhenti. Koneksi HTML akan terputus.' + RESET);
+        if (stopped) return;
+        tunnelUrl = '';
+        dashboardPageLink = DASHBOARD_URL;
+        console.log(YELLOW + '[WEB TUNNEL] Proses berhenti (exit=' + code + ', signal=' + (signal || '-') + ').' + RESET);
+        console.log(YELLOW + '[WEB TUNNEL] Dashboard tidak dapat tersambung sampai tunnel aktif kembali.' + RESET);
+        if (!foundUrl) {
+          console.log(YELLOW + '[WEB TUNNEL] Tidak menerima alamat Quick Tunnel yang valid.' + RESET);
+          console.log(YELLOW + '[WEB TUNNEL] Cek pesan error Cloudflared di atas, lalu coba: cloudflared tunnel --url http://127.0.0.1:' + BRIDGE_PORT + RESET);
+        }
       });
     } catch (error) {
       console.log(YELLOW + '[WEB TUNNEL] Jalankan manual: cloudflared tunnel --url http://127.0.0.1:' + BRIDGE_PORT + RESET);
