@@ -27,6 +27,36 @@ button:active{transform:scale(.98)}
 #result{min-height:18px;text-align:center;font-size:12px;margin-top:12px;color:#ffb0b0;line-height:1.5}
 .brand{text-align:right;margin-top:22px;color:#00ff99;text-shadow:0 0 9px #00ff99;font-size:12px;font-weight:bold}
 .foot{text-align:center;color:#52636d;font-size:10px;margin-top:18px}
+
+/* UI/UX PRO MAX refresh — lock screen only; unlock API and existing controls retained */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@400;500;600;700;800&display=swap');
+:root{color-scheme:dark;--bg:#0f172a;--panel:#1b2336;--line:rgba(148,163,184,.24);--green:#22c55e;--text:#f8fafc;--muted:#a4b2c7}
+*{box-sizing:border-box}
+body{padding:24px;background:radial-gradient(ellipse at 50% 0,rgba(34,197,94,.16),transparent 42%),radial-gradient(ellipse at 100% 100%,rgba(59,130,246,.08),transparent 36%),#0f172a;color:var(--text);font-family:'Fira Sans',system-ui,sans-serif}
+.card{width:min(100%,460px);padding:clamp(22px,5vw,34px);border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,rgba(27,35,54,.96),rgba(15,23,42,.96));box-shadow:0 24px 70px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.04)}
+.top{padding-bottom:18px;border-bottom:1px solid rgba(148,163,184,.16)}
+.logo{font-family:'Fira Code',monospace;font-size:12px;letter-spacing:.08em;color:#86efac}
+.status{font-family:'Fira Code',monospace;font-size:9px;letter-spacing:.04em;color:#86efac;border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.08);padding:8px 10px}
+h1{font-family:'Fira Sans',sans-serif;font-size:clamp(26px,7vw,34px);font-weight:800;letter-spacing:.08em;margin:30px 0 7px}
+.sub{font-family:'Fira Code',monospace;color:#a4b2c7;font-size:10px;letter-spacing:.12em}
+.message{margin-top:26px;padding:18px;border:1px solid rgba(34,197,94,.27);border-radius:15px;background:linear-gradient(140deg,rgba(34,197,94,.09),rgba(15,23,42,.45))}
+.label{font-family:'Fira Code',monospace;font-size:10px;letter-spacing:.04em;color:#86efac}
+#message{font-size:14px;line-height:1.7;color:#e2e8f0;margin-top:13px;min-height:28px}
+.sender{font-family:'Fira Code',monospace;font-size:9px;letter-spacing:.04em;color:#94a3b8;margin-top:15px}
+.panel{margin-top:18px;padding:19px;border:1px solid var(--line);background:rgba(15,23,42,.55);border-radius:15px}
+.panel-title{font-size:13px;font-weight:700;margin-bottom:15px;color:#e2e8f0}
+input{min-height:54px;padding:15px;background:#0b1220;border:1px solid rgba(148,163,184,.35);border-radius:11px;color:#fff;text-align:center;font-family:'Fira Code',monospace;font-size:22px;letter-spacing:.5em;outline:none}
+input:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.14)}
+button{min-height:48px;width:100%;padding:14px;margin-top:13px;border:1px solid #22c55e;border-radius:11px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#052e16;font-family:'Fira Code',monospace;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:filter .18s,transform .18s}
+button:hover{filter:brightness(1.08)}
+button:active{transform:scale(.99)}
+button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offset:3px}
+#result{min-height:22px;text-align:center;font-size:12px;margin-top:13px;color:#fca5a5;line-height:1.6}
+.brand{text-align:right;margin-top:22px;color:#86efac;text-shadow:0 0 16px rgba(34,197,94,.25);font-family:'Fira Code',monospace;font-size:11px;letter-spacing:.05em}
+.foot{text-align:center;color:#94a3b8;font-family:'Fira Code',monospace;font-size:9px;letter-spacing:.04em;margin-top:18px}
+@media(max-width:420px){body{padding:14px}.card{border-radius:18px}.top{align-items:flex-start;flex-direction:column}.status{align-self:flex-start}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
 </style>
 </head>
 <body>
