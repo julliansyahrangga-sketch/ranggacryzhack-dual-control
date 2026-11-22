@@ -3,59 +3,95 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#07110d">
+<meta name="theme-color" content="#0b1220">
 <title>RanggaCryz Lock Device</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;padding:20px;background:#05090d;color:#fff;font-family:Arial,sans-serif;display:grid;place-items:center}
-.card{width:min(100%,420px);padding:22px;border:1px solid #14563d;border-radius:18px;background:#0c141c;box-shadow:0 0 28px #00ff8830}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.logo{font-weight:900;color:#00ff99;letter-spacing:1px}
-.status{font-size:10px;color:#00ff99;border:1px solid #00ff99;border-radius:20px;padding:7px 10px;white-space:nowrap}
-h1{text-align:center;font-size:27px;letter-spacing:3px;margin:35px 0 6px}
-.sub{text-align:center;color:#82949f;font-size:11px;letter-spacing:2px}
-.message{margin-top:28px;padding:16px;border:1px solid #245344;border-radius:12px;background:#111f29}
-.label{font-size:12px;font-weight:bold;color:#00ff99}
-#message{font-size:14px;line-height:1.6;overflow-wrap:anywhere;margin-top:12px;white-space:pre-wrap;min-height:24px}
-.sender{font-size:10px;color:#82949f;margin-top:12px}
-.panel{margin-top:24px;padding:16px;background:#101b24;border-radius:12px}
-.panel-title{font-size:14px;font-weight:bold;margin-bottom:14px}
-input{width:100%;padding:15px;background:#060c11;border:1px solid #245344;border-radius:9px;color:white;text-align:center;font-size:22px;letter-spacing:10px;outline:none}
-input:focus{border-color:#00ff99;box-shadow:0 0 10px #00ff8830}
-button{width:100%;padding:14px;margin-top:12px;border:0;border-radius:9px;background:linear-gradient(90deg,#00ff88,#00aaff);color:#00150d;font-weight:bold;cursor:pointer}
-button:active{transform:scale(.98)}
-#result{min-height:18px;text-align:center;font-size:12px;margin-top:12px;color:#ffb0b0;line-height:1.5}
-.brand{text-align:right;margin-top:22px;color:#00ff99;text-shadow:0 0 9px #00ff99;font-size:12px;font-weight:bold}
-.foot{text-align:center;color:#52636d;font-size:10px;margin-top:18px}
-
-/* UI/UX PRO MAX refresh — lock screen only; unlock API and existing controls retained */
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@400;500;600;700;800&display=swap');
-:root{color-scheme:dark;--bg:#0f172a;--panel:#1b2336;--line:rgba(148,163,184,.24);--green:#22c55e;--text:#f8fafc;--muted:#a4b2c7}
-*{box-sizing:border-box}
-body{padding:24px;background:radial-gradient(ellipse at 50% 0,rgba(34,197,94,.16),transparent 42%),radial-gradient(ellipse at 100% 100%,rgba(59,130,246,.08),transparent 36%),#0f172a;color:var(--text);font-family:'Fira Sans',system-ui,sans-serif}
-.card{width:min(100%,460px);padding:clamp(22px,5vw,34px);border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,rgba(27,35,54,.96),rgba(15,23,42,.96));box-shadow:0 24px 70px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.04)}
-.top{padding-bottom:18px;border-bottom:1px solid rgba(148,163,184,.16)}
-.logo{font-family:'Fira Code',monospace;font-size:12px;letter-spacing:.08em;color:#86efac}
-.status{font-family:'Fira Code',monospace;font-size:9px;letter-spacing:.04em;color:#86efac;border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.08);padding:8px 10px}
-h1{font-family:'Fira Sans',sans-serif;font-size:clamp(26px,7vw,34px);font-weight:800;letter-spacing:.08em;margin:30px 0 7px}
-.sub{font-family:'Fira Code',monospace;color:#a4b2c7;font-size:10px;letter-spacing:.12em}
-.message{margin-top:26px;padding:18px;border:1px solid rgba(34,197,94,.27);border-radius:15px;background:linear-gradient(140deg,rgba(34,197,94,.09),rgba(15,23,42,.45))}
-.label{font-family:'Fira Code',monospace;font-size:10px;letter-spacing:.04em;color:#86efac}
-#message{font-size:14px;line-height:1.7;color:#e2e8f0;margin-top:13px;min-height:28px}
-.sender{font-family:'Fira Code',monospace;font-size:9px;letter-spacing:.04em;color:#94a3b8;margin-top:15px}
-.panel{margin-top:18px;padding:19px;border:1px solid var(--line);background:rgba(15,23,42,.55);border-radius:15px}
-.panel-title{font-size:13px;font-weight:700;margin-bottom:15px;color:#e2e8f0}
-input{min-height:54px;padding:15px;background:#0b1220;border:1px solid rgba(148,163,184,.35);border-radius:11px;color:#fff;text-align:center;font-family:'Fira Code',monospace;font-size:22px;letter-spacing:.5em;outline:none}
-input:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.14)}
-button{min-height:48px;width:100%;padding:14px;margin-top:13px;border:1px solid #22c55e;border-radius:11px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#052e16;font-family:'Fira Code',monospace;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:filter .18s,transform .18s}
-button:hover{filter:brightness(1.08)}
+:root{
+  color-scheme:dark;--bg:#0b1220;--surface:#172238;--line:rgba(148,163,184,.22);
+  --text:#f8fafc;--muted:#b0bfd3;--green:#22c55e;--green-bright:#4ade80;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{min-height:100%;background:var(--bg)}
+body{
+  min-height:100vh;min-height:100dvh;margin:0;padding:24px;display:grid;place-items:center;overflow-x:hidden;
+  color:var(--text);font:400 15px/1.6 'Fira Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:
+    radial-gradient(ellipse at 50% -4%,rgba(34,197,94,.18),transparent 38%),
+    radial-gradient(ellipse at 100% 100%,rgba(56,189,248,.09),transparent 34%),
+    linear-gradient(145deg,#0b1220,#0d1728 56%,#0b1423);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.16;background-image:linear-gradient(rgba(148,163,184,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.04) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(to bottom,black,transparent 90%)}
+.card{
+  position:relative;z-index:1;width:min(100%,468px);padding:clamp(22px,5vw,36px);
+  border:1px solid var(--line);border-radius:24px;overflow:hidden;
+  background:linear-gradient(145deg,rgba(27,41,66,.96),rgba(13,23,40,.97));
+  box-shadow:0 28px 80px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.055);
+  animation:card-enter .45s cubic-bezier(.2,.75,.25,1) both;
+}
+.card::before{content:"";position:absolute;top:-130px;right:-115px;width:250px;height:250px;border-radius:50%;background:rgba(34,197,94,.10);filter:blur(22px);pointer-events:none}
+@keyframes card-enter{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+.top{position:relative;display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:18px;border-bottom:1px solid rgba(148,163,184,.17)}
+.logo{color:#a7f3c3;font:700 11px/1.5 'Fira Code',monospace;letter-spacing:.085em}
+.status{
+  min-height:31px;display:inline-flex;align-items:center;gap:7px;padding:7px 10px;
+  border:1px solid rgba(34,197,94,.42);border-radius:99px;background:rgba(34,197,94,.09);
+  color:#bbf7d0;font:600 9px/1.4 'Fira Code',monospace;letter-spacing:.035em;white-space:nowrap;
+}
+h1{position:relative;margin:31px 0 7px;color:#f8fafc;text-align:center;font-size:clamp(27px,7vw,36px);font-weight:800;letter-spacing:.055em;line-height:1.15}
+.sub{position:relative;color:#b0bfd3;text-align:center;font:500 9px/1.5 'Fira Code',monospace;letter-spacing:.15em}
+.message{
+  position:relative;margin-top:27px;padding:19px;border:1px solid rgba(74,222,128,.28);border-radius:16px;
+  background:linear-gradient(135deg,rgba(34,197,94,.11),rgba(11,18,32,.40));
+  box-shadow:inset 0 1px rgba(255,255,255,.035);
+}
+.label{display:flex;align-items:center;gap:9px;color:#a7f3c3;font:600 10px/1.5 'Fira Code',monospace;letter-spacing:.045em}
+.label svg{width:17px;height:17px;flex:0 0 17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#message{min-height:30px;margin-top:13px;color:#e2e8f0;font-size:14px;line-height:1.75;overflow-wrap:anywhere;white-space:pre-wrap}
+.sender{margin-top:16px;padding-top:12px;border-top:1px solid rgba(148,163,184,.13);color:#a4b2c7;font:500 9px/1.5 'Fira Code',monospace;letter-spacing:.045em}
+.panel{position:relative;margin-top:18px;padding:19px;border:1px solid var(--line);border-radius:16px;background:rgba(11,18,32,.48)}
+.panel-title{margin-bottom:15px;color:#f1f5f9;font-size:13px;font-weight:700}
+#unlockForm{display:grid;gap:9px}
+#unlockForm label{color:#cbd5e1;font:600 10px/1.5 'Fira Code',monospace;letter-spacing:.04em}
+input{
+  width:100%;min-height:56px;padding:14px;border:1px solid rgba(148,163,184,.36);border-radius:12px;
+  background:#0b1220;color:#fff;text-align:center;font:600 22px/1.3 'Fira Code',monospace;letter-spacing:.42em;outline:none;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+}
+input::placeholder{color:#70829b;opacity:1}
+input:hover{border-color:rgba(148,163,184,.54)}
+input:focus{border-color:#4ade80;background:#0d1a2a;box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+button{
+  width:100%;min-height:50px;margin-top:4px;padding:14px;border:1px solid #22c55e;border-radius:12px;
+  background:linear-gradient(135deg,#4ade80,#22c55e);color:#052e16;
+  font:700 10px/1.4 'Fira Code',monospace;letter-spacing:.06em;cursor:pointer;touch-action:manipulation;
+  box-shadow:0 8px 22px rgba(34,197,94,.13);transition:filter .16s,transform .16s,box-shadow .16s;
+}
+button:hover{filter:brightness(1.07);box-shadow:0 11px 27px rgba(34,197,94,.2)}
 button:active{transform:scale(.99)}
 button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offset:3px}
-#result{min-height:22px;text-align:center;font-size:12px;margin-top:13px;color:#fca5a5;line-height:1.6}
-.brand{text-align:right;margin-top:22px;color:#86efac;text-shadow:0 0 16px rgba(34,197,94,.25);font-family:'Fira Code',monospace;font-size:11px;letter-spacing:.05em}
-.foot{text-align:center;color:#94a3b8;font-family:'Fira Code',monospace;font-size:9px;letter-spacing:.04em;margin-top:18px}
-@media(max-width:420px){body{padding:14px}.card{border-radius:18px}.top{align-items:flex-start;flex-direction:column}.status{align-self:flex-start}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+#result{min-height:24px;margin-top:13px;color:#fecaca;text-align:center;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.brand{position:relative;margin-top:20px;color:#a7f3c3;text-align:right;font:600 10px/1.5 'Fira Code',monospace;letter-spacing:.08em}
+.foot{position:relative;margin-top:17px;color:#a4b2c7;text-align:center;font:500 8px/1.6 'Fira Code',monospace;letter-spacing:.045em}
+@media(max-width:420px){
+  body{padding:14px}
+  .card{padding:22px 18px;border-radius:20px}
+  .top{align-items:flex-start;flex-direction:column}
+  .status{align-self:flex-start}
+  h1{margin-top:26px}
+  .message{padding:16px}
+  .panel{padding:16px}
+}
+@media(orientation:landscape) and (max-height:540px){
+  body{padding:14px;place-items:start center}
+  .card{margin:auto}
+  h1{margin-top:20px}
+  .message{margin-top:18px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 
 </style>
 </head>
@@ -65,19 +101,20 @@ button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offse
  <h1>LOCK DEVICE</h1>
  <div class="sub">LOCAL DEVICE PROTECTION</div>
  <section class="message">
-  <div class="label">▣ PESAN DARI CONTROLLER</div>
+  <div class="label"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg><span>PESAN DARI CONTROLLER</span></div>
   <div id="message">Menghubungkan ke Receiver...</div>
   <div class="sender">RANGGACRYZHACK • TARGET INTERFACE</div>
  </section>
  <section class="panel">
   <div class="panel-title">Masukkan PIN Lock untuk UNLOCK</div>
   <form id="unlockForm">
+   <label for="pin">PIN LOCK · 4 DIGIT</label>
    <input id="pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="off" aria-label="PIN Lock 4 digit" required>
    <button type="submit">UNLOCK DEVICE</button>
   </form>
   <div id="result" aria-live="polite"></div>
  </section>
- <div class="brand">RanggaCryz☠️</div>
+ <div class="brand">RANGGACRYZHACK · DEVICE INTERFACE</div>
  <div class="foot">STATUS DISINKRONKAN DENGAN RECEIVER</div>
 </main>
 <script>
