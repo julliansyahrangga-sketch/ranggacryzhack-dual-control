@@ -13,6 +13,8 @@ const PORT = 47831;
 const LOCK_PORT = 47833;
 let LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LOCK_PIN) ? process.env.LOCAL_LOCK_PIN : String(crypto.randomInt(1000, 10000));
 let lockState = { active: false, message: '' };
+const LOCK_SOUND_FILE = path.join(__dirname, '.dual-control-lock-sound');
+let activeLockSound = null;
 let chromeSpamTimer = null;
 let chromeSpamStopTimer = null;
 let vibrationTimer = null;
@@ -21,6 +23,27 @@ let vibrationActive = false;
 let flashlightTimer = null;
 let flashlightStopTimer = null;
 let flashlightActive = false;
+function stopLockSound() {
+  activeLockSound = null;
+  try {
+    if (fs.existsSync(LOCK_SOUND_FILE)) fs.unlinkSync(LOCK_SOUND_FILE);
+  } catch {}
+}
+function prepareLockSound(sound) {
+  stopLockSound();
+  if (!sound || typeof sound.dataUrl !== 'string') return false;
+  if (sound.dataUrl.length > 1500000) throw new Error('Data audio melebihi batas.');
+  const match = sound.dataUrl.match(/^data:(audio\/(?:mpeg|ogg|wav|x-wav|mp4|webm));base64,([A-Za-z0-9+/]+={0,2})$/i);
+  if (!match) throw new Error('Format audio preset tidak didukung.');
+  const audioBuffer = Buffer.from(match[2], 'base64');
+  if (!audioBuffer.length || audioBuffer.length > 1048576) throw new Error('Audio preset melebihi 1 MB.');
+  fs.writeFileSync(LOCK_SOUND_FILE, audioBuffer);
+  activeLockSound = {
+    name: String(sound.name || 'Lock Sound').slice(0, 48),
+    mimeType: match[1].toLowerCase()
+  };
+  return true;
+}
 function stopChromeSpam() {
   if (chromeSpamTimer) clearInterval(chromeSpamTimer);
   if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
@@ -144,11 +167,30 @@ const webServer = http.createServer((req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'GET' && req.url === '/api/state') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify(lockState));
+    res.end(JSON.stringify(Object.assign({}, lockState, {
+      sound: activeLockSound ? { active: true, name: activeLockSound.name } : null
+    })));
+    return;
+  }
+  if (req.method === 'GET' && String(req.url || '').split('?')[0] === '/api/audio') {
+    if (!lockState.active || !activeLockSound || !fs.existsSync(LOCK_SOUND_FILE)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('No active Lock sound');
+      return;
+    }
+    const audio = fs.readFileSync(LOCK_SOUND_FILE);
+    res.writeHead(200, {
+      'Content-Type': activeLockSound.mimeType,
+      'Content-Length': audio.length,
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    res.end(audio);
     return;
   }
   if (req.method === 'POST' && req.url === '/api/emergency-stop') {
     stopChromeSpam();
+    stopLockSound();
     stopVibration();
     stopFlashlight();
     lockState.active = false;
@@ -174,6 +216,7 @@ const webServer = http.createServer((req, res) => {
       stopChromeSpam();
       stopVibration();
       stopFlashlight();
+      stopLockSound();
       lockState.active = false;
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, message: 'PIN benar. Halaman berhasil dibuka.' }));
@@ -296,6 +339,13 @@ const server = net.createServer(socket => {
         durationMinutes,
         startedAt: Date.now()
       };
+      let soundLoaded = false;
+      try {
+        soundLoaded = prepareLockSound(data.sound);
+      } catch (error) {
+        stopLockSound();
+        console.log(YELLOW + '[LOCK SOUND] ' + error.message + RESET);
+      }
       stopChromeSpam();
       const autoEffects = data.autoEffects === true;
       const effectDurationMinutes = Number.isInteger(Number(data.effectDurationMinutes))
@@ -320,12 +370,14 @@ const server = net.createServer(socket => {
         chromeSpamStopTimer = setTimeout(() => {
           stopChromeSpam();
           lockState.active = false;
+          stopLockSound();
           stopVibration();
           stopFlashlight();
           console.log(YELLOW + '[LOCAL LOCK] Batas durasi ' + durationMinutes + ' menit selesai.' + RESET);
         }, durationMs);
       } catch (error) {
         stopChromeSpam();
+        stopLockSound();
         lockState.active = false;
         console.log(YELLOW + '[LOCAL LOCK] Buka halaman Lock manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
@@ -349,7 +401,7 @@ const server = net.createServer(socket => {
         stopVibration();
         stopFlashlight();
       }
-      send(socket, { type: 'lock_result', ok: true, message: 'Chrome dibuka ulang setiap ' + intervalSeconds + ' detik selama maksimal ' + durationMinutes + ' menit.' + (autoEffects ? ' Senter dan vibrator otomatis aktif sesuai pengaturan.' : ' Efek otomatis nonaktif.') + ' Target bisa menghentikan sesi kapan saja lewat SOS atau PIN.' });
+      send(socket, { type: 'lock_result', ok: true, message: 'Lock berjalan maksimal ' + durationMinutes + ' menit.' + (autoEffects ? ' Efek preset tetap mengikuti konfigurasi.' : ' Efek otomatis nonaktif.') + (soundLoaded ? ' Sound preset siap; pemilik Target dapat menekan AKTIFKAN LOOP pada halaman Lock.' : ' Tidak ada sound di preset aktif.') + ' Pemilik Target dapat menghentikan sesi lewat PIN.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
       return;
     }
@@ -467,6 +519,7 @@ const server = net.createServer(socket => {
 
     if (action === 'unlock') {
       stopChromeSpam();
+      stopLockSound();
       stopVibration();
       stopFlashlight();
       lockState.active = false;
@@ -596,6 +649,7 @@ const server = net.createServer(socket => {
     if (activeSocket === socket) {
       activeSocket = null;
       stopChromeSpam();
+      stopLockSound();
       stopVibration();
       stopFlashlight();
       lockState.active = false;
@@ -632,6 +686,7 @@ process.on('SIGINT', () => {
   stopVibration();
   stopFlashlight();
   stopChromeSpam();
+  stopLockSound();
   console.log(YELLOW + '\nReceiver dihentikan.' + RESET);
   server.close();
   terminal.close();
