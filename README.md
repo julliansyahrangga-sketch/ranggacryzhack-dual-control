@@ -231,7 +231,8 @@ Alamat halaman:
 - Memulai sesi Lock dengan konfirmasi, lalu menghentikannya melalui UNLOCK.
 - Tes vibrator dengan durasi terbatas dan tombol STOP.
 - Menyalakan atau mematikan flashlight.
-- Menjalankan atau menghentikan konfigurasi AUTO EFFECTS yang sudah disimpan di Controller.
+- Membuat, mengedit, dan memilih preset getar/senter dari dashboard; preset tersimpan di Controller Termux.
+- Mengatur Auto Effects, lalu menjalankan atau menghentikan preset melalui kontrol yang tersedia.
 
 Dashboard tidak melakukan pairing sendiri, tidak menyembunyikan status koneksi, dan tidak membaca isi layar atau pesan perangkat. Semua kontrol hanya tersedia selama sesi Controller yang dipasangkan dan disetujui masih aktif.
 
