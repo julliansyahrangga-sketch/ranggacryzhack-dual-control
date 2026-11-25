@@ -382,6 +382,34 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
 @media(max-width:900px){.config-layout{grid-template-columns:1fr}}
 @media(max-width:600px){.config-item{grid-template-columns:1fr}.config-item-actions{justify-content:flex-start}.config-item-actions .btn{flex:1 1 120px}}
 
+
+/* LOW-END ANDROID / MOBILE PERFORMANCE */
+@media(max-width:720px){
+  html{scroll-behavior:auto}
+  body{
+    background:#0b1220;
+    -webkit-font-smoothing:initial;
+    text-rendering:auto;
+  }
+  body::before{display:none}
+  .sidebar,.topbar{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    background:#0b1423!important;
+  }
+  .sidebar{box-shadow:8px 0 22px rgba(0,0,0,.28);will-change:transform}
+  .stat,.panel,.module,.setting-card{box-shadow:none!important}
+  .stat::after{display:none}
+  .log-dot,.dot{box-shadow:none}
+  .page.active{animation:none}
+  .stat,.module,.btn,.icon-btn,.nav button{transition:none!important}
+  .stat:hover,.module:hover,.btn:hover:not(:disabled),.icon-btn:hover{
+    transform:none!important;
+    box-shadow:none!important;
+    filter:none!important;
+  }
+  body.custom-wallpaper{background-attachment:scroll!important}
+}
 </style>
 </head>
 <body>
@@ -405,7 +433,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
 
 <main class="main" id="mainContent" tabindex="-1">
 <header class="topbar">
-  <div class="top-actions"><button class="icon-btn mobile-menu" id="menuBtn" aria-label="Buka menu"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="crumb">RANGGACRYZHACK <b>/</b> <span id="crumb">DASHBOARD</span></div></div>
+  <div class="top-actions"><button class="icon-btn mobile-menu" id="menuBtn" aria-label="Buka menu" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="crumb">RANGGACRYZHACK <b>/</b> <span id="crumb">DASHBOARD</span></div></div>
   <div class="pill" id="connectionBadge"><i class="dot"></i> NOT CONNECTED</div>
 </header>
 
@@ -607,12 +635,32 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     const selected=buttons.find(button=>button.dataset.page===name);
     $('crumb').textContent=selected?selected.textContent.trim().toUpperCase():'DASHBOARD';
     sidebar.classList.remove('open');
-    window.scrollTo({top:0,behavior:'smooth'});
+    $('menuBtn').setAttribute('aria-expanded','false');
+    $('menuBtn').setAttribute('aria-label','Buka menu');
+    window.scrollTo({top:0,behavior:'auto'});
   }
   buttons.forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.page)));
-  $('menuBtn').addEventListener('click',()=>sidebar.classList.toggle('open'));
+  const menuButton=$('menuBtn');
+  menuButton.addEventListener('click',event=>{
+    event.stopPropagation();
+    const willOpen=!sidebar.classList.contains('open');
+    sidebar.classList.toggle('open',willOpen);
+    menuButton.setAttribute('aria-expanded',String(willOpen));
+    menuButton.setAttribute('aria-label',willOpen?'Tutup menu':'Buka menu');
+  });
   document.addEventListener('click',event=>{
-    if(window.innerWidth<=720&&sidebar.classList.contains('open')&&!sidebar.contains(event.target)&&event.target!==$('menuBtn'))sidebar.classList.remove('open');
+    if(window.innerWidth<=720&&sidebar.classList.contains('open')&&!sidebar.contains(event.target)&&!menuButton.contains(event.target)){
+      sidebar.classList.remove('open');
+      menuButton.setAttribute('aria-expanded','false');
+      menuButton.setAttribute('aria-label','Buka menu');
+    }
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&sidebar.classList.contains('open')){
+      sidebar.classList.remove('open');
+      menuButton.setAttribute('aria-expanded','false');
+      menuButton.setAttribute('aria-label','Buka menu');
+    }
   });
 
   function addLog(message,ok){
