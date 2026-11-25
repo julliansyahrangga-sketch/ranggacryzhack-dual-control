@@ -52,6 +52,12 @@ h1{position:relative;margin:31px 0 7px;color:#f8fafc;text-align:center;font-size
 .sender{margin-top:16px;padding-top:12px;border-top:1px solid rgba(148,163,184,.13);color:#a4b2c7;font:500 9px/1.5 'Fira Code',monospace;letter-spacing:.045em}
 .panel{position:relative;margin-top:18px;padding:19px;border:1px solid var(--line);border-radius:16px;background:rgba(11,18,32,.48)}
 .panel-title{margin-bottom:15px;color:#f1f5f9;font-size:13px;font-weight:700}
+.sound-status{min-height:22px;margin-top:9px;color:#b0bfd3;font-size:11px;line-height:1.55;overflow-wrap:anywhere}
+.sound-name{color:#f1f5f9;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.sound-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.sound-controls button{min-height:44px;margin:0;padding:10px}
+button.secondary{border-color:rgba(148,163,184,.38);background:rgba(51,65,85,.62);color:#e2e8f0;box-shadow:none}
+button:disabled{opacity:.42;filter:saturate(.45);cursor:not-allowed;box-shadow:none}
 #unlockForm{display:grid;gap:9px}
 #unlockForm label{color:#cbd5e1;font:600 10px/1.5 'Fira Code',monospace;letter-spacing:.04em}
 input{
@@ -106,6 +112,16 @@ button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offse
   <div class="sender">RANGGACRYZHACK • TARGET INTERFACE</div>
  </section>
  <section class="panel">
+  <div class="panel-title">SOUND PRESET</div>
+  <div class="sound-name" id="soundName">Memeriksa preset suara...</div>
+  <div class="sound-status" id="soundStatus" aria-live="polite">Suara akan berulang setelah pemilik perangkat menekan tombol aktivasi.</div>
+  <div class="sound-controls">
+   <button type="button" id="enableSoundBtn" disabled>AKTIFKAN LOOP</button>
+   <button type="button" id="stopSoundBtn" class="secondary" disabled>STOP SOUND</button>
+  </div>
+  <audio id="lockAudio" preload="none" loop></audio>
+ </section>
+ <section class="panel">
   <div class="panel-title">Masukkan PIN Lock untuk UNLOCK</div>
   <form id="unlockForm">
    <label for="pin">PIN LOCK · 4 DIGIT</label>
@@ -120,29 +136,84 @@ button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offse
 <script>
 const $=id=>document.getElementById(id);
 let busy=false;
+let currentState=null;
+let soundConsent=false;
+let soundPlaying=false;
+const lockAudio=$('lockAudio');
+
+function stopLoop(resetConsent){
+ lockAudio.pause();
+ try{lockAudio.currentTime=0;}catch(_){}
+ soundPlaying=false;
+ if(resetConsent!==false)soundConsent=false;
+ $('stopSoundBtn').disabled=true;
+}
+
+async function startLoop(){
+ if(!currentState||!currentState.active||!currentState.sound||!currentState.sound.active)return;
+ if(!lockAudio.src){
+  lockAudio.src='/api/audio?session='+encodeURIComponent(currentState.startedAt||Date.now());
+  lockAudio.loop=true;
+  lockAudio.load();
+ }
+ try{
+  await lockAudio.play();
+  soundPlaying=true;
+  $('soundStatus').textContent='Suara aktif dan akan mengulang sampai sesi Lock berhenti atau tombol STOP SOUND ditekan.';
+  $('stopSoundBtn').disabled=false;
+ }catch(_){
+  soundPlaying=false;
+  soundConsent=false;
+  $('soundStatus').textContent='Browser menolak pemutaran otomatis. Tekan AKTIFKAN LOOP untuk memberi izin.';
+ }
+}
+
 async function refresh(){
  if(busy)return;
  try{
   const r=await fetch('/api/state',{cache:'no-store'});
   if(!r.ok)throw Error('HTTP '+r.status);
   const s=await r.json();
+  currentState=s;
   $('message').textContent=s.message||'Tidak ada pesan dari Controller.';
   $('status').textContent=s.active?'● LOCK ACTIVE':'● UNLOCKED';
   $('status').style.color=s.active?'#00ff99':'#aab';
   $('status').style.borderColor=s.active?'#00ff99':'#82949f';
+  const hasSound=!!(s.sound&&s.sound.active);
+  $('soundName').textContent=hasSound?'Sound: '+s.sound.name:'Tidak ada sound pada preset aktif.';
+  $('enableSoundBtn').disabled=!s.active||!hasSound;
+  if(!s.active||!hasSound){
+   stopLoop(true);
+   $('soundStatus').textContent=s.active?'Preset Lock tidak memiliki audio.':'Sesi Lock tidak aktif.';
+  }else if(soundConsent&&!soundPlaying){
+   await startLoop();
+  }else if(!soundPlaying){
+   $('soundStatus').textContent='Tekan AKTIFKAN LOOP untuk memulai suara. Audio akan berulang otomatis.';
+  }
  }catch{
   $('status').textContent='● OFFLINE';
   $('status').style.color='#ff7777';
   $('message').textContent='Receiver tidak terhubung. Periksa server Termux.';
+  stopLoop(true);
+  $('soundName').textContent='Sound tidak tersedia.';
+  $('soundStatus').textContent='Receiver sedang offline.';
+  $('enableSoundBtn').disabled=true;
  }
 }
+$('enableSoundBtn').addEventListener('click',async()=>{
+ soundConsent=true;
+ $('soundStatus').textContent='Memulai suara...';
+ await startLoop();
+});
+$('stopSoundBtn').addEventListener('click',()=>stopLoop(true));
+
 $('unlockForm').addEventListener('submit',async e=>{
  e.preventDefault();busy=true;$('result').textContent='Memeriksa PIN...';
  try{
   const r=await fetch('/api/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:$('pin').value})});
   const d=await r.json();
   $('result').textContent=d.message||(d.ok?'PIN benar. Lock dihentikan.':'PIN tidak cocok.');
-  if(d.ok)$('pin').value='';
+  if(d.ok){$('pin').value='';stopLoop(true);}
   await refresh();
  }catch{$('result').textContent='Receiver tidak dapat dijangkau.';}
  finally{busy=false;}
