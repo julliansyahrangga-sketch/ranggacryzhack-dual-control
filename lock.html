@@ -54,7 +54,7 @@ h1{position:relative;margin:31px 0 7px;color:#f8fafc;text-align:center;font-size
 .panel-title{margin-bottom:15px;color:#f1f5f9;font-size:13px;font-weight:700}
 .sound-status{min-height:22px;margin-top:9px;color:#b0bfd3;font-size:11px;line-height:1.55;overflow-wrap:anywhere}
 .sound-name{color:#f1f5f9;font-size:12px;font-weight:700;overflow-wrap:anywhere}
-.sound-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.sound-controls{display:grid;grid-template-columns:1fr;gap:9px;margin-top:10px}
 .sound-controls button{min-height:44px;margin:0;padding:10px}
 button.secondary{border-color:rgba(148,163,184,.38);background:rgba(51,65,85,.62);color:#e2e8f0;box-shadow:none}
 button:disabled{opacity:.42;filter:saturate(.45);cursor:not-allowed;box-shadow:none}
@@ -114,7 +114,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offse
  <section class="panel">
   <div class="panel-title">SOUND PRESET</div>
   <div class="sound-name" id="soundName">Memeriksa preset suara...</div>
-  <div class="sound-status" id="soundStatus" aria-live="polite">Suara akan berulang setelah pemilik perangkat menekan tombol aktivasi.</div>
+  <div class="sound-status" id="soundStatus" aria-live="polite">Preset Lock akan berulang setelah diaktifkan, lalu berhenti saat PIN benar atau sesi Lock berakhir.</div>
   <div class="sound-controls">
    <button type="button" id="enableSoundBtn" disabled>AKTIFKAN LOOP</button>
    
@@ -147,7 +147,6 @@ function stopLoop(resetConsent){
  try{lockAudio.currentTime=0;}catch(_){}
  soundPlaying=false;
  if(resetConsent!==false)soundConsent=false;
- $('stopSoundBtn').disabled=true;
 }
 
 async function startLoop(){
@@ -164,8 +163,7 @@ async function startLoop(){
  try{
   await lockAudio.play();
   soundPlaying=true;
-  $('soundStatus').textContent='Suara aktif dan akan mengulang sampai sesi Lock berhenti atau tombol STOP SOUND ditekan.';
-  $('stopSoundBtn').disabled=false;
+  $('soundStatus').textContent='Suara aktif dan mengulang sampai PIN benar atau sesi Lock berakhir.';
  }catch(_){
   soundPlaying=false;
   soundConsent=false;
@@ -210,7 +208,6 @@ $('enableSoundBtn').addEventListener('click',async()=>{
  $('soundStatus').textContent='Memulai suara...';
  await startLoop();
 });
-$('stopSoundBtn').addEventListener('click',()=>stopLoop(true));
 
 $('unlockForm').addEventListener('submit',async e=>{
  e.preventDefault();busy=true;$('result').textContent='Memeriksa PIN...';
