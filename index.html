@@ -808,10 +808,13 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
         try{
           if(previewAudio){previewAudio.pause();previewAudio=null;}
           const data=await api('/api/sounds/'+sound.id,{method:'GET'});
-          previewAudio=new Audio(data.sound.dataUrl);
+          const thisPreview=new Audio(data.sound.dataUrl);
+          previewAudio=thisPreview;
           previewSoundId=sound.id;
-          previewAudio.addEventListener('ended',()=>{previewAudio=null;previewSoundId=null;renderSoundboard();});
-          await previewAudio.play();
+          thisPreview.addEventListener('ended',()=>{
+            if(previewAudio===thisPreview){previewAudio=null;previewSoundId=null;renderSoundboard();}
+          });
+          await thisPreview.play();
           renderSoundboard();
           $('soundMessage').textContent='Memutar preview: '+sound.name;
         }catch(error){
@@ -959,6 +962,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
       const extension=(file.name.split('.').pop()||'').toLowerCase();
       mimeType=extension==='mp3'?'audio/mpeg':extension==='ogg'?'audio/ogg':extension==='wav'?'audio/wav':extension==='m4a'?'audio/mp4':extension==='webm'?'audio/webm':'';
     }
+    if(mimeType==='audio/mp3')mimeType='audio/mpeg';
     if(!/^audio\/(mpeg|ogg|wav|x-wav|mp4|webm)$/.test(mimeType)){
       $('soundMessage').textContent='Format tidak didukung. Pilih MP3, OGG, WAV, M4A, atau WEBM.';
       return;
@@ -966,12 +970,13 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('soundAddBtn').disabled=true;
     $('soundMessage').textContent='Membaca dan mengunggah audio...';
     try{
-      const dataUrl=await new Promise((resolve,reject)=>{
+      const rawDataUrl=await new Promise((resolve,reject)=>{
         const reader=new FileReader();
         reader.onload=()=>resolve(String(reader.result||''));
         reader.onerror=()=>reject(new Error('File audio gagal dibaca.'));
         reader.readAsDataURL(file);
       });
+      const dataUrl=rawDataUrl.replace(/^data:[^;]*;base64,/,'data:'+mimeType+';base64,');
       await api('/api/sounds',{method:'POST',body:JSON.stringify({action:'add',name,mimeType,dataUrl})});
       $('soundNameInput').value='';$('soundFileInput').value='';
       await loadSounds();
