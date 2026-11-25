@@ -252,7 +252,7 @@ body .stat,body .panel,body .module,body .setting-card{background:linear-gradien
 .switch-row input:checked + .switch-ui{border-color:var(--ui-accent,#4ade80);background:var(--ui-accent,#4ade80)}
 .switch-row input:checked + .switch-ui:after{transform:translateX(20px);background:#07130c}
 .switch-row input:focus-visible + .switch-ui{outline:2px solid #fff;outline-offset:3px}
-.settings-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:15px;padding:16px 17px;border:1px solid var(--line);border-radius:15px;background:rgba(11,18,32,.45)}
+.wallpaper-crop-wrap{margin-top:12px;padding:12px;border:1px solid rgba(74,222,128,.25);border-radius:12px;background:rgba(9,16,30,.5)}.wallpaper-crop-wrap canvas{display:block;width:100%;max-height:420px;object-fit:contain;border-radius:8px;touch-action:none;background:#050a12}.wallpaper-crop-wrap p{margin:0 0 10px}.wallpaper-crop-wrap[hidden]{display:none}.settings-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:15px;padding:16px 17px;border:1px solid var(--line);border-radius:15px;background:rgba(11,18,32,.45)}
 .settings-footer strong{display:block;color:#f1f5f9;font:700 10px 'Fira Code',monospace;letter-spacing:.06em}
 .settings-footer small{display:block;margin-top:5px;color:#aebed3;font-size:10px;line-height:1.5}
 .settings-footer .btn{flex-shrink:0}
@@ -580,7 +580,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   <div class="settings-summary"><span class="settings-summary-mark">✦</span><div><strong>PERSONAL WORKSPACE</strong><small>Pengaturan tampilan tersimpan otomatis di browser ini.</small></div><span class="settings-saved" id="settingsSaveState">AUTO-SAVE ON</span></div>
   <div class="settings-grid">
     <article class="setting-card setting-card-wide"><div class="setting-heading"><span class="setting-icon">◈</span><div><h3>Theme Preset</h3><p>Pilih suasana warna utama dashboard.</p></div></div><label class="setting-label" for="settingTheme">COLOR PROFILE</label><select id="settingTheme" class="setting-input"><option value="emerald">Emerald Core</option><option value="midnight">Midnight Black</option><option value="ocean">Ocean Blue</option><option value="violet">Violet Pulse</option><option value="amber">Amber Terminal</option></select></article>
-    <article class="setting-card setting-card-wide"><div class="setting-heading"><span class="setting-icon">▧</span><div><h3>Custom Wallpaper</h3><p>Gunakan foto sendiri sebagai latar. Foto diproses dan disimpan secara lokal di browser ini.</p></div></div><label class="setting-label" for="settingWallpaper">PILIH FOTO (JPG / PNG / WEBP)</label><input id="settingWallpaper" class="setting-input setting-file" type="file" accept="image/jpeg,image/png,image/webp"><div class="setting-actions"><button class="btn secondary" id="removeWallpaperBtn" type="button">REMOVE PHOTO</button><span class="setting-mini" id="wallpaperStatus">No custom photo selected</span></div></article>
+    <article class="setting-card setting-card-wide"><div class="setting-heading"><span class="setting-icon">▧</span><div><h3>Custom Wallpaper</h3><p>Gunakan foto sendiri sebagai latar. Foto diproses dan disimpan secara lokal di browser ini.</p></div></div><label class="setting-label" for="settingWallpaper">PILIH FOTO (JPG / PNG / WEBP)</label><input id="settingWallpaper" class="setting-input setting-file" type="file" accept="image/jpeg,image/png,image/webp"><div id="wallpaperCropWrap" class="wallpaper-crop-wrap" hidden><p class="setting-mini">Geser kotak panjang pada gambar untuk memilih bagian yang dipakai. Kotak bisa digeser dengan jari.</p><canvas id="wallpaperCropCanvas" aria-label="Pratinjau dan pemilih area wallpaper"></canvas><div class="setting-actions"><button class="btn" id="applyWallpaperCrop" type="button">PAKAI BAGIAN TERPILIH</button><button class="btn secondary" id="cancelWallpaperCrop" type="button">BATAL</button></div></div><div class="setting-actions"><button class="btn secondary" id="removeWallpaperBtn" type="button">REMOVE PHOTO</button><span class="setting-mini" id="wallpaperStatus">No custom photo selected</span></div></article>
     <article class="setting-card"><div class="setting-heading"><span class="setting-icon">◐</span><div><h3>Wallpaper Shade</h3><p>Atur gelapnya foto agar teks tetap terbaca.</p></div></div><div class="range-line"><input id="settingShade" type="range" min="35" max="92" value="72"><output id="settingShadeValue">72%</output></div></article>
     <article class="setting-card"><div class="setting-heading"><span class="setting-icon">✳</span><div><h3>Accent Color</h3><p>Ubah warna sorotan elemen aktif.</p></div></div><div class="color-line"><input id="settingAccent" type="color" value="#4ade80"><span id="accentValue">#4ADE80</span></div></article>
     <article class="setting-card"><div class="setting-heading"><span class="setting-icon">▤</span><div><h3>Panel Transparency</h3><p>Atur tingkat transparansi kartu.</p></div></div><div class="range-line"><input id="settingPanel" type="range" min="45" max="100" value="92"><output id="settingPanelValue">92%</output></div></article>
@@ -1251,6 +1251,20 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   $('settingStats').addEventListener('change',e=>change('stats',e.target.checked));
   $('settingSession').addEventListener('change',e=>change('session',e.target.checked));
   $('settingHints').addEventListener('change',e=>change('hints',e.target.checked));
+  let cropImage=null,cropRect=null,cropPointer=null,cropScale=1;
+  const cropCanvas=$('wallpaperCropCanvas'),cropCtx=cropCanvas.getContext('2d');
+  function drawCrop(){
+    if(!cropImage||!cropRect)return;
+    cropCtx.clearRect(0,0,cropCanvas.width,cropCanvas.height);
+    cropCtx.drawImage(cropImage,0,0,cropCanvas.width,cropCanvas.height);
+    cropCtx.fillStyle='rgba(2,6,15,.62)';
+    cropCtx.fillRect(0,0,cropCanvas.width,cropCanvas.height);
+    cropCtx.clearRect(cropRect.x,cropRect.y,cropRect.w,cropRect.h);
+    cropCtx.drawImage(cropImage,cropRect.x/cropScale,cropRect.y/cropScale,cropRect.w/cropScale,cropRect.h/cropScale,cropRect.x,cropRect.y,cropRect.w,cropRect.h);
+    cropCtx.strokeStyle='#4ade80';cropCtx.lineWidth=Math.max(2,cropCanvas.width/300);
+    cropCtx.strokeRect(cropRect.x,cropRect.y,cropRect.w,cropRect.h);
+    cropCtx.fillStyle='#4ade80';cropCtx.fillRect(cropRect.x+cropRect.w-18,cropRect.y+cropRect.h-18,18,18);
+  }
   $('settingWallpaper').addEventListener('change',event=>{
     const file=event.target.files&&event.target.files[0];if(!file)return;
     if(!/^image\/(jpeg|png|webp)$/.test(file.type)){ $('settingsMessage').textContent='Pilih gambar JPG, PNG, atau WEBP.';event.target.value='';return;}
@@ -1258,14 +1272,48 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     const reader=new FileReader();
     reader.onload=()=>{
       const image=new Image();image.onload=()=>{
-        const scale=Math.min(1,1200/Math.max(image.width,image.height));
-        const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
-        const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0,canvas.width,canvas.height);
-        let data=canvas.toDataURL('image/jpeg',.72);if(data.length>1800000)data=canvas.toDataURL('image/jpeg',.52);
-        state.wallpaper=data;apply();save();$('settingsMessage').textContent='Foto latar berhasil dipasang dan disimpan di browser ini.';
+        cropImage=image;
+        const fit=Math.min(1,900/image.width,520/image.height);
+        cropCanvas.width=Math.max(1,Math.round(image.width*fit));cropCanvas.height=Math.max(1,Math.round(image.height*fit));cropScale=fit;
+        const ratio=16/9;let w=cropCanvas.width*.82,h=w/ratio;
+        if(h>cropCanvas.height*.82){h=cropCanvas.height*.82;w=h*ratio;}
+        cropRect={x:(cropCanvas.width-w)/2,y:(cropCanvas.height-h)/2,w,h};
+        $('wallpaperCropWrap').hidden=false;drawCrop();
+        $('settingsMessage').textContent='Geser kotak hijau ke bagian gambar yang ingin ditampilkan sebagai wallpaper.';
       };image.onerror=()=>{$('settingsMessage').textContent='Foto tidak dapat dibaca. Coba gambar lain.';};image.src=reader.result;
     };
     reader.onerror=()=>{$('settingsMessage').textContent='Gagal membaca file gambar.';};reader.readAsDataURL(file);
+  });
+  function cropPoint(event){
+    const box=cropCanvas.getBoundingClientRect();
+    return {x:(event.clientX-box.left)*cropCanvas.width/box.width,y:(event.clientY-box.top)*cropCanvas.height/box.height};
+  }
+  cropCanvas.addEventListener('pointerdown',event=>{
+    if(!cropRect||$('wallpaperCropWrap').hidden)return;
+    const p=cropPoint(event);
+    if(p.x>=cropRect.x&&p.x<=cropRect.x+cropRect.w&&p.y>=cropRect.y&&p.y<=cropRect.y+cropRect.h){
+      cropPointer={x:p.x-cropRect.x,y:p.y-cropRect.y};cropCanvas.setPointerCapture(event.pointerId);
+    }
+  });
+  cropCanvas.addEventListener('pointermove',event=>{
+    if(!cropPointer||!cropRect)return;
+    const p=cropPoint(event);
+    cropRect.x=Math.max(0,Math.min(cropCanvas.width-cropRect.w,p.x-cropPointer.x));
+    cropRect.y=Math.max(0,Math.min(cropCanvas.height-cropRect.h,p.y-cropPointer.y));
+    drawCrop();
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(name=>cropCanvas.addEventListener(name,()=>{cropPointer=null;}));
+  $('cancelWallpaperCrop').addEventListener('click',()=>{$('wallpaperCropWrap').hidden=true;$('settingWallpaper').value='';cropImage=null;});
+  $('applyWallpaperCrop').addEventListener('click',()=>{
+    if(!cropImage||!cropRect)return;
+    const sx=Math.round(cropRect.x/cropScale),sy=Math.round(cropRect.y/cropScale);
+    const sw=Math.max(1,Math.round(cropRect.w/cropScale)),sh=Math.max(1,Math.round(cropRect.h/cropScale));
+    const out=document.createElement('canvas'),scale=Math.min(1,1200/Math.max(sw,sh));
+    out.width=Math.max(1,Math.round(sw*scale));out.height=Math.max(1,Math.round(sh*scale));
+    out.getContext('2d').drawImage(cropImage,sx,sy,sw,sh,0,0,out.width,out.height);
+    let data=out.toDataURL('image/jpeg',.78);if(data.length>1800000)data=out.toDataURL('image/jpeg',.55);
+    state.wallpaper=data;apply();save();$('wallpaperCropWrap').hidden=true;$('settingWallpaper').value='';cropImage=null;
+    $('settingsMessage').textContent='Bagian gambar terpilih berhasil dipasang sebagai wallpaper.';
   });
   $('removeWallpaperBtn').addEventListener('click',()=>{state.wallpaper='';apply();save();$('settingsMessage').textContent='Foto latar khusus dihapus.';});
   $('resetSettingsBtn').addEventListener('click',()=>{if(!confirm('Kembalikan semua pengaturan tampilan ke default?'))return;state={...defaults};apply();save();$('settingsMessage').textContent='Semua preferensi tampilan dikembalikan ke default.';});
