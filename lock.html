@@ -139,6 +139,7 @@ let busy=false;
 let currentState=null;
 let soundConsent=false;
 let soundPlaying=false;
+let loadedAudioSession='';
 const lockAudio=$('lockAudio');
 
 function stopLoop(resetConsent){
@@ -151,10 +152,14 @@ function stopLoop(resetConsent){
 
 async function startLoop(){
  if(!currentState||!currentState.active||!currentState.sound||!currentState.sound.active)return;
- if(!lockAudio.src){
-  lockAudio.src='/api/audio?session='+encodeURIComponent(currentState.startedAt||Date.now());
+ const sessionKey=String(currentState.startedAt||'active');
+ if(loadedAudioSession!==sessionKey){
+  lockAudio.pause();
+  lockAudio.removeAttribute('src');
+  lockAudio.src='/api/audio?session='+encodeURIComponent(sessionKey);
   lockAudio.loop=true;
   lockAudio.load();
+  loadedAudioSession=sessionKey;
  }
  try{
   await lockAudio.play();
