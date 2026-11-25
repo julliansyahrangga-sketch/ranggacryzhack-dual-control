@@ -111,7 +111,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offse
   <div id="message">Menghubungkan ke Receiver...</div>
   <div class="sender">RANGGACRYZHACK • TARGET INTERFACE</div>
  </section>
- <section class="panel">
+ <section class="panel" id="soundPanel">
   <div class="panel-title">SOUND PRESET</div>
   <div class="sound-name" id="soundName">Memeriksa preset suara...</div>
   <div class="sound-status" id="soundStatus" aria-live="polite">Sound preset akan berulang otomatis selama sesi Lock aktif, lalu berhenti saat PIN benar atau sesi berakhir.</div>
@@ -176,7 +176,7 @@ async function refresh(){
   $('status').style.color=s.active?'#00ff99':'#aab';
   $('status').style.borderColor=s.active?'#00ff99':'#82949f';
   const hasSound=!!(s.sound&&s.sound.active);
-  $('soundName').textContent=hasSound?'Sound: '+s.sound.name:'Tidak ada sound pada preset aktif.';
+  $('soundPanel').style.display=hasSound?'':'none';
   if(!s.active||!hasSound){
    stopLoop(true);
    $('soundStatus').textContent=s.active?'Preset Lock tidak memiliki audio.':'Sesi Lock tidak aktif.';
@@ -188,8 +188,7 @@ async function refresh(){
   $('status').style.color='#ff7777';
   $('message').textContent='Receiver tidak terhubung. Periksa server Termux.';
   stopLoop(true);
-  $('soundName').textContent='Sound tidak tersedia.';
-  $('soundStatus').textContent='Receiver sedang offline.';
+  $('soundPanel').style.display='none';
  }
 }
 $('unlockForm').addEventListener('submit',async e=>{
