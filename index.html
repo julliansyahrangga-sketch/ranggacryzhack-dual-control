@@ -616,6 +616,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('flashOnBtn').disabled=!value;$('flashOffBtn').disabled=!value;$('startEffectsBtn').disabled=!value;$('stopEffectsBtn').disabled=!value;
     $('connectBtn').disabled=value;$('disconnectBtn').disabled=!value;
     ['configNameInput','configVibrationPulse','configVibrationDuration','configFlashInterval','configFlashDuration','configSaveBtn','configNewBtn','configCancelBtn','configAutoEffects','configRefreshBtn'].forEach(id=>{if($(id))$(id).disabled=!value;});
+    if($('configList'))renderConfigList();
     if(message)$('connectStatus').textContent=message;
     if(!value){
       $('statLock').textContent='UNKNOWN';$('lockStatusText').textContent='Unknown';
