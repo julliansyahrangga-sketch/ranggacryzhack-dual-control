@@ -254,18 +254,6 @@ const webServer = http.createServer((req, res) => {
     fs.createReadStream(LOCK_SOUND_FILE).pipe(res);
     return;
   }
-  if (req.method === 'POST' && req.url === '/api/emergency-stop') {
-    stopChromeSpam();
-    stopLockSound();
-    stopSoundboardPlayback().catch(() => {});
-    stopVibration();
-    stopFlashlight();
-    lockState.active = false;
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ ok: true, message: 'Sesi istirahat dihentikan.' }));
-    console.log(YELLOW + '[LOCAL LOCK] SOS ditekan dari halaman.' + RESET);
-    return;
-  }
   if (req.method === 'POST' && req.url === '/api/unlock') {
     let body = '';
     req.on('data', chunk => {
