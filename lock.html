@@ -114,11 +114,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offse
  <section class="panel">
   <div class="panel-title">SOUND PRESET</div>
   <div class="sound-name" id="soundName">Memeriksa preset suara...</div>
-  <div class="sound-status" id="soundStatus" aria-live="polite">Preset Lock akan berulang setelah diaktifkan, lalu berhenti saat PIN benar atau sesi Lock berakhir.</div>
-  <div class="sound-controls">
-   <button type="button" id="enableSoundBtn" disabled>AKTIFKAN LOOP</button>
-   
-  </div>
+  <div class="sound-status" id="soundStatus" aria-live="polite">Sound preset akan berulang otomatis selama sesi Lock aktif, lalu berhenti saat PIN benar atau sesi berakhir.</div>
   <audio id="lockAudio" preload="none" loop></audio>
  </section>
  <section class="panel">
@@ -137,7 +133,6 @@ button:focus-visible,input:focus-visible{outline:2px solid #86efac;outline-offse
 const $=id=>document.getElementById(id);
 let busy=false;
 let currentState=null;
-let soundConsent=false;
 let soundPlaying=false;
 let loadedAudioSession='';
 const lockAudio=$('lockAudio');
@@ -146,7 +141,6 @@ function stopLoop(resetConsent){
  lockAudio.pause();
  try{lockAudio.currentTime=0;}catch(_){}
  soundPlaying=false;
- if(resetConsent!==false)soundConsent=false;
 }
 
 async function startLoop(){
@@ -166,8 +160,7 @@ async function startLoop(){
   $('soundStatus').textContent='Suara aktif dan mengulang sampai PIN benar atau sesi Lock berakhir.';
  }catch(_){
   soundPlaying=false;
-  soundConsent=false;
-  $('soundStatus').textContent='Browser menolak pemutaran otomatis. Tekan AKTIFKAN LOOP untuk memberi izin.';
+  $('soundStatus').textContent='Browser memblokir autoplay. Pemutaran otomatis tidak tersedia di browser ini.';
  }
 }
 
@@ -184,14 +177,11 @@ async function refresh(){
   $('status').style.borderColor=s.active?'#00ff99':'#82949f';
   const hasSound=!!(s.sound&&s.sound.active);
   $('soundName').textContent=hasSound?'Sound: '+s.sound.name:'Tidak ada sound pada preset aktif.';
-  $('enableSoundBtn').disabled=!s.active||!hasSound;
   if(!s.active||!hasSound){
    stopLoop(true);
    $('soundStatus').textContent=s.active?'Preset Lock tidak memiliki audio.':'Sesi Lock tidak aktif.';
-  }else if(soundConsent&&!soundPlaying){
-   await startLoop();
   }else if(!soundPlaying){
-   $('soundStatus').textContent='Tekan AKTIFKAN LOOP untuk memulai suara. Audio akan berulang otomatis.';
+   await startLoop();
   }
  }catch{
   $('status').textContent='● OFFLINE';
@@ -200,15 +190,8 @@ async function refresh(){
   stopLoop(true);
   $('soundName').textContent='Sound tidak tersedia.';
   $('soundStatus').textContent='Receiver sedang offline.';
-  $('enableSoundBtn').disabled=true;
  }
 }
-$('enableSoundBtn').addEventListener('click',async()=>{
- soundConsent=true;
- $('soundStatus').textContent='Memulai suara...';
- await startLoop();
-});
-
 $('unlockForm').addEventListener('submit',async e=>{
  e.preventDefault();busy=true;$('result').textContent='Memeriksa PIN...';
  try{
