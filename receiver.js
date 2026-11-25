@@ -15,6 +15,7 @@ let LOCK_PIN = process.env.LOCAL_LOCK_PIN && /^\d{4}$/.test(process.env.LOCAL_LO
 let lockState = { active: false, message: '' };
 const LOCK_SOUND_FILE = path.join(__dirname, '.dual-control-lock-sound');
 let activeLockSound = null;
+let soundboardAudioFile = null;
 let chromeSpamTimer = null;
 let chromeSpamStopTimer = null;
 let vibrationTimer = null;
@@ -44,6 +45,48 @@ function prepareLockSound(sound) {
   };
   return true;
 }
+
+async function stopSoundboardPlayback() {
+  try { await run('termux-media-player', ['stop']); } catch {}
+  if (soundboardAudioFile) {
+    try { if (fs.existsSync(soundboardAudioFile)) fs.unlinkSync(soundboardAudioFile); } catch {}
+    soundboardAudioFile = null;
+  }
+}
+
+async function playSoundboard(sound) {
+  if (!sound || typeof sound.dataUrl !== 'string') throw new Error('Data audio tidak tersedia.');
+  if (sound.dataUrl.length > 1500000) throw new Error('Data audio melewati batas 1 MB.');
+  const match = sound.dataUrl.match(/^data:(audio\/(?:mpeg|ogg|wav|x-wav|mp4|webm));base64,([A-Za-z0-9+/]+={0,2})$/i);
+  if (!match) throw new Error('Format audio tidak didukung.');
+  const mimeType = match[1].toLowerCase();
+  if (sound.mimeType && String(sound.mimeType).toLowerCase() !== mimeType) {
+    throw new Error('Tipe audio tidak cocok dengan file.');
+  }
+  const audioBuffer = Buffer.from(match[2], 'base64');
+  if (!audioBuffer.length || audioBuffer.length > 1048576) throw new Error('Audio maksimal 1 MB.');
+  const extension = {
+    'audio/mpeg': 'mp3',
+    'audio/ogg': 'ogg',
+    'audio/wav': 'wav',
+    'audio/x-wav': 'wav',
+    'audio/mp4': 'm4a',
+    'audio/webm': 'webm'
+  }[mimeType];
+  if (!extension) throw new Error('Format audio tidak didukung.');
+  await stopSoundboardPlayback();
+  const filePath = path.join(__dirname, '.dual-control-soundboard.' + extension);
+  fs.writeFileSync(filePath, audioBuffer);
+  try {
+    await run('termux-media-player', ['play', filePath]);
+    soundboardAudioFile = filePath;
+  } catch (error) {
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+    throw new Error('Pemutar audio gagal. Pastikan Termux:API dan paket termux-api tersedia di HP Target. ' + error.message);
+  }
+  return String(sound.name || 'Sound').slice(0, 48);
+}
+
 function stopChromeSpam() {
   if (chromeSpamTimer) clearInterval(chromeSpamTimer);
   if (chromeSpamStopTimer) clearTimeout(chromeSpamStopTimer);
@@ -214,6 +257,7 @@ const webServer = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/api/emergency-stop') {
     stopChromeSpam();
     stopLockSound();
+    stopSoundboardPlayback().catch(() => {});
     stopVibration();
     stopFlashlight();
     lockState.active = false;
@@ -240,6 +284,7 @@ const webServer = http.createServer((req, res) => {
       stopVibration();
       stopFlashlight();
       stopLockSound();
+      stopSoundboardPlayback().catch(() => {});
       lockState.active = false;
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, message: 'PIN benar. Halaman berhasil dibuka.' }));
@@ -346,6 +391,7 @@ const server = net.createServer(socket => {
         return;
       }
       LOCK_PIN = requestedPin;
+      await stopSoundboardPlayback();
       const requestedInterval = Number(data.intervalSeconds);
       const intervalSeconds = Number.isFinite(requestedInterval)
         ? Math.max(1, Math.min(30, Math.floor(requestedInterval)))
@@ -394,6 +440,7 @@ const server = net.createServer(socket => {
           stopChromeSpam();
           lockState.active = false;
           stopLockSound();
+          stopSoundboardPlayback().catch(() => {});
           stopVibration();
           stopFlashlight();
           console.log(YELLOW + '[LOCAL LOCK] Batas durasi ' + durationMinutes + ' menit selesai.' + RESET);
@@ -401,6 +448,7 @@ const server = net.createServer(socket => {
       } catch (error) {
         stopChromeSpam();
         stopLockSound();
+        stopSoundboardPlayback().catch(() => {});
         lockState.active = false;
         console.log(YELLOW + '[LOCAL LOCK] Buka halaman Lock manual: http://127.0.0.1:' + LOCK_PORT + RESET);
       }
@@ -426,6 +474,25 @@ const server = net.createServer(socket => {
       }
       send(socket, { type: 'lock_result', ok: true, message: 'Lock berjalan maksimal ' + durationMinutes + ' menit.' + (autoEffects ? ' Efek preset tetap mengikuti konfigurasi.' : ' Efek otomatis nonaktif.') + (soundLoaded ? ' Sound preset siap; pemilik Target dapat menekan AKTIFKAN LOOP pada halaman Lock.' : ' Tidak ada sound di preset aktif.') + ' Pemilik Target dapat menghentikan sesi lewat PIN.' });
       console.log(GREEN + '[LOCAL LOCK] Aktif.' + RESET);
+      return;
+    }
+
+    if (action === 'soundboard_play') {
+      try {
+        const name = await playSoundboard(data.sound);
+        send(socket, { type: 'soundboard_result', ok: true, message: 'Memutar "' + name + '" pada HP Target.' });
+        console.log(GREEN + '[SOUNDBOARD] Memutar ' + name + RESET);
+      } catch (error) {
+        send(socket, { type: 'soundboard_result', ok: false, message: error.message });
+        console.log(YELLOW + '[SOUNDBOARD] ' + error.message + RESET);
+      }
+      return;
+    }
+
+    if (action === 'soundboard_stop') {
+      await stopSoundboardPlayback();
+      send(socket, { type: 'soundboard_result', ok: true, message: 'Audio Soundboard dihentikan pada HP Target.' });
+      console.log(YELLOW + '[SOUNDBOARD] Playback dihentikan.' + RESET);
       return;
     }
 
@@ -543,6 +610,7 @@ const server = net.createServer(socket => {
     if (action === 'unlock') {
       stopChromeSpam();
       stopLockSound();
+      await stopSoundboardPlayback();
       stopVibration();
       stopFlashlight();
       lockState.active = false;
@@ -673,6 +741,7 @@ const server = net.createServer(socket => {
       activeSocket = null;
       stopChromeSpam();
       stopLockSound();
+      stopSoundboardPlayback().catch(() => {});
       stopVibration();
       stopFlashlight();
       lockState.active = false;
@@ -706,6 +775,7 @@ console.log(YELLOW + 'Menunggu koneksi dan persetujuan pairing...' + RESET);
 server.listen(PORT, '0.0.0.0');
 
 process.on('SIGINT', () => {
+  stopSoundboardPlayback().catch(() => {});
   stopVibration();
   stopFlashlight();
   stopChromeSpam();
