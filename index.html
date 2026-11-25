@@ -808,11 +808,11 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
 
       const play=document.createElement('button');
       play.type='button';play.className='btn secondary';
-      play.textContent=playingSoundId===sound.id?'PLAY AGAIN':'PLAY';
+      play.textContent='PLAY';
+      play.setAttribute('aria-label','Putar '+sound.name+' pada Receiver');
       play.disabled=!connected;
       play.addEventListener('click',async()=>{
         if(!connected)return;
-        if(!confirm('Putar "'+sound.name+'" pada HP Target yang terhubung?'))return;
         play.disabled=true;
         $('soundMessage').textContent='Mengirim audio ke HP Target...';
         try{
