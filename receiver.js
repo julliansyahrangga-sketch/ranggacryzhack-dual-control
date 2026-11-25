@@ -74,7 +74,8 @@ async function playSoundboard(sound) {
     'audio/webm': 'webm'
   }[mimeType];
   if (!extension) throw new Error('Format audio tidak didukung.');
-  await stopSoundboardPlayback();
+  // Do not issue a separate STOP before PLAY. Starting a sound should not
+  // interrupt unrelated receiver audio; the media player handles the new play request.
   const filePath = path.join(__dirname, '.dual-control-soundboard.' + extension);
   fs.writeFileSync(filePath, audioBuffer);
   try {
