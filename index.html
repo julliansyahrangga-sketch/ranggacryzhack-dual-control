@@ -369,6 +369,14 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
 .config-warning{margin:0 0 16px;padding:13px 15px;border:1px solid rgba(56,189,248,.28);border-radius:13px;background:rgba(8,47,73,.22);color:#c8eaff;font-size:11px;line-height:1.65}
 .config-form-message{min-height:22px;margin-top:12px;color:#b0bfd3;font-size:11px;line-height:1.6}
 .config-empty{padding:22px 17px;border:1px dashed rgba(148,163,184,.35);border-radius:13px;background:rgba(11,18,32,.36);color:#b0bfd3;font-size:12px;line-height:1.7;text-align:center}
+.sound-upload-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) minmax(125px,.55fr);align-items:end;gap:12px;margin-bottom:16px}
+.soundboard{display:grid;gap:8px;max-width:760px}
+.sound-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;min-height:58px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(11,18,32,.48)}
+.sound-row-name{color:#f1f5f9;font-size:12px;font-weight:750;overflow-wrap:anywhere}
+.sound-row-meta{margin-top:3px;color:#9eafc5;font:9px/1.45 'Fira Code',monospace}
+.sound-row .btn{min-width:76px;min-height:38px;padding:8px 10px}
+.sound-row .btn.danger{min-width:70px}
+@media(max-width:700px){.sound-upload-grid{grid-template-columns:1fr}.sound-row{grid-template-columns:minmax(0,1fr) auto auto;gap:7px;padding:9px}.sound-row .btn{min-width:58px;padding:7px;font-size:8px}}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .btn[hidden]{display:none}
 @media(max-width:900px){.config-layout{grid-template-columns:1fr}}
@@ -473,7 +481,17 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
 
 <section class="page" id="page-configs">
   <div class="page-intro"><div class="eyebrow">PRESET WORKSPACE</div><h1>CONFIGURATIONS</h1><div class="subtitle">Kelola preset getar dan senter yang tersimpan di Controller Termux. Pilih satu preset agar digunakan oleh fitur yang sudah tersedia.</div></div>
-  <div class="config-warning"><strong>CATATAN:</strong> Menyimpan atau memilih preset tidak langsung menyalakan getar maupun senter. Efek hanya berjalan saat perintah yang relevan dijalankan dan pemilik perangkat telah menyetujui sesi pairing.</div>
+  <div class="config-warning"><strong>CATATAN:</strong> Preset hanya berjalan saat Lock dimulai. Suara di halaman penerima memerlukan aktivasi pemilik perangkat; tombol STOP SOUND menghentikan audio tanpa mengubah PIN atau sesi.</div>
+  <div class="panel sound-library-panel">
+    <div class="panel-head"><div><div class="panel-title">SOUND LIBRARY</div><div class="panel-hint">MAX 8 FILES · 1 MB EACH</div></div><span class="panel-hint" id="soundCount">0 SOUNDS</span></div>
+    <form id="soundUploadForm" class="sound-upload-grid">
+      <div class="field"><label for="soundNameInput">NAMA SOUND</label><input id="soundNameInput" type="text" maxlength="48" placeholder="Contoh: Notifikasi" required disabled></div>
+      <div class="field"><label for="soundFileInput">FILE AUDIO (MP3 / OGG / WAV)</label><input id="soundFileInput" type="file" accept="audio/mpeg,audio/ogg,audio/wav,audio/x-wav,audio/mp4,audio/webm,.mp3,.ogg,.wav,.m4a,.webm" required disabled></div>
+      <div class="field"><label>BATAS FILE</label><button class="btn" id="soundAddBtn" type="submit" disabled>ADD SOUND</button></div>
+    </form>
+    <div class="soundboard" id="soundList" aria-live="polite"><div class="config-empty">Hubungkan Controller untuk menambahkan suara.</div></div>
+    <div class="form-status" id="soundMessage" aria-live="polite">Audio disimpan di Controller dan dikirim ke Receiver ketika preset dipakai.</div>
+  </div>
   <div class="config-layout">
     <div class="panel">
       <div class="panel-head"><div><div class="panel-title">SAVED CONFIGURATIONS</div><div class="panel-hint" id="configCount">Belum dimuat</div></div><button class="btn secondary" id="configRefreshBtn" type="button" disabled>REFRESH</button></div>
@@ -491,6 +509,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
         <div class="field"><label for="configVibrationDuration">DURASI GETAR (1–5 MENIT)</label><input id="configVibrationDuration" type="number" min="1" max="5" step="1" value="5" inputmode="numeric" required disabled></div>
         <div class="field"><label for="configFlashInterval">INTERVAL SENTER (800–20000 MS)</label><input id="configFlashInterval" type="number" min="800" max="20000" step="100" value="1000" inputmode="numeric" required disabled></div>
         <div class="field"><label for="configFlashDuration">DURASI SENTER (1–5 MENIT)</label><input id="configFlashDuration" type="number" min="1" max="5" step="1" value="5" inputmode="numeric" required disabled></div>
+        <div class="field full"><label for="configSoundSelect">SOUND SAAT LOCK</label><select id="configSoundSelect" disabled><option value="">Tanpa suara</option></select><div class="config-field-note">Suara diputar berulang setelah pemilik Target mengaktifkannya di halaman Lock.</div></div>
         <div class="field full"><div class="btn-row"><button class="btn" id="configSaveBtn" type="submit" disabled>SAVE CONFIG</button><button class="btn secondary" id="configNewBtn" type="button" disabled>NEW CONFIG</button><button class="btn secondary" id="configCancelBtn" type="button" hidden disabled>CANCEL EDIT</button></div></div>
       </form>
       <div class="config-form-message" id="configFormMessage" aria-live="polite">Hubungkan dashboard untuk menambah, mengedit, atau memilih preset.</div>
@@ -565,6 +584,9 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   let pollHandle=null;
   let logs=[];
   let savedConfigs=[];
+  let soundLibrary=[];
+  let previewAudio=null;
+  let previewSoundId=null;
   let activeConfigId=null;
   let autoEffectsEnabled=true;
   let editingConfigId=null;
@@ -615,8 +637,10 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('loadAppsBtn').disabled=!value;$('startVibrationBtn').disabled=!value;$('stopVibrationBtn').disabled=!value;
     $('flashOnBtn').disabled=!value;$('flashOffBtn').disabled=!value;$('startEffectsBtn').disabled=!value;$('stopEffectsBtn').disabled=!value;
     $('connectBtn').disabled=value;$('disconnectBtn').disabled=!value;
-    ['configNameInput','configVibrationPulse','configVibrationDuration','configFlashInterval','configFlashDuration','configSaveBtn','configNewBtn','configCancelBtn','configAutoEffects','configRefreshBtn'].forEach(id=>{if($(id))$(id).disabled=!value;});
+    ['configNameInput','configVibrationPulse','configVibrationDuration','configFlashInterval','configFlashDuration','configSoundSelect','configSaveBtn','configNewBtn','configCancelBtn','configAutoEffects','configRefreshBtn','soundNameInput','soundFileInput','soundAddBtn'].forEach(id=>{if($(id))$(id).disabled=!value;});
+    if(!value&&previewAudio){previewAudio.pause();previewAudio=null;previewSoundId=null;}
     if($('configList'))renderConfigList();
+    if($('soundList'))renderSoundboard();
     if(message)$('connectStatus').textContent=message;
     if(!value){
       $('statLock').textContent='UNKNOWN';$('lockStatusText').textContent='Unknown';
@@ -700,7 +724,10 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
       vib.textContent='Getar · '+item.vibrationPulseMs+' ms / '+item.vibrationDurationMinutes+' menit';
       const flash=document.createElement('span');
       flash.textContent='Senter · '+item.flashIntervalMs+' ms / '+item.flashDurationMinutes+' menit';
-      details.append(vib,flash);
+      const soundInfo=document.createElement('span');
+      const chosenSound=soundLibrary.find(sound=>sound.id===item.soundId);
+      soundInfo.textContent='Sound · '+(chosenSound?chosenSound.name:'Tidak dipilih');
+      details.append(vib,flash,soundInfo);
       main.append(title,details);
       const actions=document.createElement('div');
       actions.className='config-item-actions';
@@ -731,6 +758,91 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('configListMessage').textContent='Konfigurasi berhasil dimuat dari Controller Termux.';
   }
 
+  function updateSoundSelect(selected){
+    const select=$('configSoundSelect');
+    if(!select)return;
+    const choice=selected===undefined?select.value:selected;
+    select.replaceChildren();
+    const none=document.createElement('option');
+    none.value='';none.textContent='Tanpa suara';
+    select.appendChild(none);
+    soundLibrary.forEach(sound=>{
+      const option=document.createElement('option');
+      option.value=sound.id;option.textContent=sound.name;
+      select.appendChild(option);
+    });
+    select.value=soundLibrary.some(sound=>sound.id===choice)?choice:'';
+    select.disabled=!connected;
+  }
+
+  function renderSoundboard(){
+    const list=$('soundList');
+    if(!list)return;
+    list.replaceChildren();
+    $('soundCount').textContent=soundLibrary.length+' SOUNDS';
+    updateSoundSelect();
+    if(!soundLibrary.length){
+      const empty=document.createElement('div');
+      empty.className='config-empty';
+      empty.textContent='Belum ada audio. Isi nama, pilih file, lalu tekan ADD SOUND.';
+      list.appendChild(empty);
+      return;
+    }
+    soundLibrary.forEach(sound=>{
+      const row=document.createElement('div');row.className='sound-row';
+      const info=document.createElement('div');
+      const name=document.createElement('div');name.className='sound-row-name';name.textContent=sound.name;
+      const meta=document.createElement('div');meta.className='sound-row-meta';
+      meta.textContent=sound.mimeType.toUpperCase()+' · '+(Math.max(1,Math.round(sound.sizeBytes/1024)))+' KB';
+      info.append(name,meta);
+      const play=document.createElement('button');
+      play.type='button';play.className='btn secondary';
+      play.textContent=previewSoundId===sound.id?'STOP':'PLAY';
+      play.disabled=!connected;
+      play.addEventListener('click',async()=>{
+        if(previewSoundId===sound.id&&previewAudio){
+          previewAudio.pause();previewAudio=null;previewSoundId=null;
+          renderSoundboard();$('soundMessage').textContent='Preview dihentikan.';
+          return;
+        }
+        try{
+          if(previewAudio){previewAudio.pause();previewAudio=null;}
+          const data=await api('/api/sounds/'+sound.id,{method:'GET'});
+          previewAudio=new Audio(data.sound.dataUrl);
+          previewSoundId=sound.id;
+          previewAudio.addEventListener('ended',()=>{previewAudio=null;previewSoundId=null;renderSoundboard();});
+          await previewAudio.play();
+          renderSoundboard();
+          $('soundMessage').textContent='Memutar preview: '+sound.name;
+        }catch(error){
+          previewAudio=null;previewSoundId=null;renderSoundboard();
+          $('soundMessage').textContent='Preview gagal: '+error.message;
+        }
+      });
+      const remove=document.createElement('button');
+      remove.type='button';remove.className='btn danger';remove.textContent='DELETE';
+      remove.disabled=!connected;
+      remove.addEventListener('click',async()=>{
+        if(!confirm('Hapus sound "'+sound.name+'" dari pustaka? Config yang memakainya akan diubah menjadi Tanpa suara.'))return;
+        try{
+          if(previewAudio){previewAudio.pause();previewAudio=null;previewSoundId=null;}
+          await api('/api/sounds',{method:'POST',body:JSON.stringify({action:'delete',id:sound.id})});
+          await loadConfigs();await loadSounds();
+          $('soundMessage').textContent='Sound dihapus.';
+        }catch(error){$('soundMessage').textContent='Gagal menghapus sound: '+error.message;}
+      });
+      row.append(info,play,remove);
+      list.appendChild(row);
+    });
+  }
+
+  async function loadSounds(){
+    const data=await api('/api/sounds',{method:'GET'});
+    soundLibrary=Array.isArray(data.sounds)?data.sounds:[];
+    renderSoundboard();
+    renderConfigList();
+  }
+
   function resetConfigEditor(){
     editingConfigId=null;
     $('configNameInput').value='';
@@ -738,6 +850,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('configVibrationDuration').value='5';
     $('configFlashInterval').value='1000';
     $('configFlashDuration').value='5';
+    $('configSoundSelect').value='';
     $('configEditorMode').textContent='NEW PRESET';
     $('configEditorTitle').textContent='Buat konfigurasi baru';
     $('configSaveBtn').textContent='SAVE CONFIG';
@@ -752,6 +865,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('configVibrationDuration').value=item.vibrationDurationMinutes;
     $('configFlashInterval').value=item.flashIntervalMs;
     $('configFlashDuration').value=item.flashDurationMinutes;
+    $('configSoundSelect').value=item.soundId||'';
     $('configEditorMode').textContent='EDITING PRESET';
     $('configEditorTitle').textContent='Edit: '+item.name;
     $('configSaveBtn').textContent='SAVE CHANGES';
@@ -805,7 +919,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
       $('configFlashDuration').focus();return;
     }
     const wasEditing=!!editingConfigId;
-    const payload={action:'save',name,vibrationPulseMs,vibrationDurationMinutes,flashIntervalMs,flashDurationMinutes};
+    const payload={action:'save',name,vibrationPulseMs,vibrationDurationMinutes,flashIntervalMs,flashDurationMinutes,soundId:$('configSoundSelect').value};
     if(editingConfigId)payload.id=editingConfigId;
     $('configSaveBtn').disabled=true;
     $('configSaveBtn').textContent='SAVING...';
@@ -832,6 +946,43 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('configListMessage').textContent='Memuat ulang daftar konfigurasi...';
     try{await loadConfigs();}catch(error){$('configListMessage').textContent='Gagal memuat konfigurasi: '+error.message;}
   });
+  $('soundUploadForm').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!connected)return;
+    const name=$('soundNameInput').value.trim();
+    const file=$('soundFileInput').files&&$('soundFileInput').files[0];
+    if(!name||name.length>48){$('soundMessage').textContent='Nama sound wajib diisi, maksimal 48 karakter.';return;}
+    if(!file){$('soundMessage').textContent='Pilih file audio terlebih dahulu.';return;}
+    if(file.size>1048576){$('soundMessage').textContent='Ukuran file maksimal 1 MB.';return;}
+    let mimeType=(file.type||'').toLowerCase();
+    if(!mimeType){
+      const extension=(file.name.split('.').pop()||'').toLowerCase();
+      mimeType=extension==='mp3'?'audio/mpeg':extension==='ogg'?'audio/ogg':extension==='wav'?'audio/wav':extension==='m4a'?'audio/mp4':extension==='webm'?'audio/webm':'';
+    }
+    if(!/^audio\/(mpeg|ogg|wav|x-wav|mp4|webm)$/.test(mimeType)){
+      $('soundMessage').textContent='Format tidak didukung. Pilih MP3, OGG, WAV, M4A, atau WEBM.';
+      return;
+    }
+    $('soundAddBtn').disabled=true;
+    $('soundMessage').textContent='Membaca dan mengunggah audio...';
+    try{
+      const dataUrl=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result||''));
+        reader.onerror=()=>reject(new Error('File audio gagal dibaca.'));
+        reader.readAsDataURL(file);
+      });
+      await api('/api/sounds',{method:'POST',body:JSON.stringify({action:'add',name,mimeType,dataUrl})});
+      $('soundNameInput').value='';$('soundFileInput').value='';
+      await loadSounds();
+      $('soundMessage').textContent='Sound "'+name+'" berhasil ditambahkan. Pilih pada editor konfigurasi.';
+      addLog('Added sound: '+name,true);
+    }catch(error){
+      $('soundMessage').textContent='Gagal menambahkan sound: '+error.message;
+      addLog('Sound upload failed: '+error.message,false);
+    }finally{$('soundAddBtn').disabled=!connected;}
+  });
+
   $('configAutoEffects').addEventListener('change',async()=>{
     if(!connected)return;
     const requested=$('configAutoEffects').checked;
@@ -883,6 +1034,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
       addLog('Dashboard connected to authorized Controller',true);
       await refreshStatus();
       await loadConfigs();
+      await loadSounds();
       if(pollHandle)clearInterval(pollHandle);
       pollHandle=setInterval(refreshStatus,5000);
     }catch(error){
