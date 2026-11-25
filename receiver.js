@@ -178,14 +178,37 @@ const webServer = http.createServer((req, res) => {
       res.end('No active Lock sound');
       return;
     }
-    const audio = fs.readFileSync(LOCK_SOUND_FILE);
-    res.writeHead(200, {
+    const stat = fs.statSync(LOCK_SOUND_FILE);
+    const range = String(req.headers.range || '');
+    const rangeMatch = range.match(/^bytes=(\d*)-(\d*)$/);
+    const commonHeaders = {
       'Content-Type': activeLockSound.mimeType,
-      'Content-Length': audio.length,
+      'Accept-Ranges': 'bytes',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff'
-    });
-    res.end(audio);
+    };
+    if (range) {
+      if (!rangeMatch) {
+        res.writeHead(416, { 'Content-Range': 'bytes */' + stat.size });
+        res.end();
+        return;
+      }
+      const start = rangeMatch[1] ? Number(rangeMatch[1]) : 0;
+      const end = rangeMatch[2] ? Math.min(Number(rangeMatch[2]), stat.size - 1) : stat.size - 1;
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > end || start >= stat.size) {
+        res.writeHead(416, { 'Content-Range': 'bytes */' + stat.size });
+        res.end();
+        return;
+      }
+      res.writeHead(206, Object.assign({}, commonHeaders, {
+        'Content-Range': 'bytes ' + start + '-' + end + '/' + stat.size,
+        'Content-Length': end - start + 1
+      }));
+      fs.createReadStream(LOCK_SOUND_FILE, { start, end }).pipe(res);
+      return;
+    }
+    res.writeHead(200, Object.assign({}, commonHeaders, { 'Content-Length': stat.size }));
+    fs.createReadStream(LOCK_SOUND_FILE).pipe(res);
     return;
   }
   if (req.method === 'POST' && req.url === '/api/emergency-stop') {
