@@ -28,7 +28,7 @@ let dashboardPageLink = '';
 const CONFIG_FILE = path.join(__dirname, 'configurations.json');
 
 function loadConfigStore() {
-  const fallback = { autoEffects: true, activeConfigId: null, configs: [] };
+  const fallback = { autoEffects: true, activeConfigId: null, configs: [], sounds: [] };
   try {
     const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
     if (!parsed || !Array.isArray(parsed.configs)) return fallback;
@@ -38,11 +38,21 @@ function loadConfigStore() {
       Number.isInteger(item.vibrationDurationMinutes) && item.vibrationDurationMinutes >= 1 && item.vibrationDurationMinutes <= 5 &&
       Number.isInteger(item.flashIntervalMs) && item.flashIntervalMs >= 800 && item.flashIntervalMs <= 20000 &&
       Number.isInteger(item.flashDurationMinutes) && item.flashDurationMinutes >= 1 && item.flashDurationMinutes <= 5
-    );
+    ).map(item => ({
+      ...item,
+      soundId: typeof item.soundId === 'string' ? item.soundId : null
+    }));
+    const sounds = Array.isArray(parsed.sounds) ? parsed.sounds.filter(sound =>
+      sound && typeof sound.id === 'string' && typeof sound.name === 'string' &&
+      typeof sound.dataUrl === 'string' && sound.dataUrl.length <= 1500000 &&
+      /^audio\/(?:mpeg|ogg|wav|x-wav|mp4|webm)$/i.test(sound.mimeType) &&
+      Number.isInteger(sound.sizeBytes) && sound.sizeBytes > 0 && sound.sizeBytes <= 1048576
+    ) : [];
     return {
       autoEffects: parsed.autoEffects !== false,
       activeConfigId: configs.some(item => item.id === parsed.activeConfigId) ? parsed.activeConfigId : null,
-      configs
+      configs,
+      sounds
     };
   } catch {
     return fallback;
@@ -473,6 +483,30 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
     });
   }
 
+  function readLargeBody(req, maxBytes) {
+    return new Promise((resolve, reject) => {
+      let body = '';
+      let settled = false;
+      req.on('data', chunk => {
+        if (settled) return;
+        body += chunk;
+        if (body.length > maxBytes) {
+          settled = true;
+          reject(new Error('Ukuran audio melewati batas 1 MB.'));
+          req.destroy();
+        }
+      });
+      req.on('end', () => {
+        if (settled) return;
+        try { resolve(JSON.parse(body || '{}')); }
+        catch { reject(new Error('Format JSON audio tidak valid.')); }
+      });
+      req.on('error', error => {
+        if (!settled) reject(error);
+      });
+    });
+  }
+
   async function receiverRequest(data, timeout) {
     const result = await channel.request(data, timeout || 20000);
     if (result.type === 'error' || result.ok === false) {
@@ -509,6 +543,9 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
         throw new Error('Durasi harus 1 sampai 5 menit.');
       }
       const activeConfig = getActiveConfig();
+      const activeSound = activeConfig && activeConfig.soundId
+        ? configStore.sounds.find(item => item.id === activeConfig.soundId)
+        : null;
       return receiverRequest({
         type: 'lock',
         token: receiverToken,
@@ -516,6 +553,12 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
         pin: lockPin,
         intervalSeconds,
         durationMinutes,
+        sound: activeSound ? {
+          id: activeSound.id,
+          name: activeSound.name,
+          mimeType: activeSound.mimeType,
+          dataUrl: activeSound.dataUrl
+        } : null,
         autoEffects: configStore.autoEffects && !!activeConfig,
         effectDurationMinutes: activeConfig ? Math.max(activeConfig.flashDurationMinutes, activeConfig.vibrationDurationMinutes) : 5,
         effectFlashDurationMinutes: activeConfig ? activeConfig.flashDurationMinutes : 5,
@@ -630,6 +673,83 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
         return;
       }
 
+      if (req.method === 'GET' && pathname === '/api/sounds') {
+        json(res, 200, {
+          ok: true,
+          sounds: configStore.sounds.map(item => ({
+            id: item.id, name: item.name, mimeType: item.mimeType, sizeBytes: item.sizeBytes
+          }))
+        });
+        return;
+      }
+
+      const soundMatch = pathname.match(/^\/api\/sounds\/([a-z0-9-]+)$/i);
+      if (req.method === 'GET' && soundMatch) {
+        const sound = configStore.sounds.find(item => item.id === soundMatch[1]);
+        if (!sound) {
+          json(res, 404, { ok: false, message: 'Sound tidak ditemukan.' });
+          return;
+        }
+        json(res, 200, {
+          ok: true,
+          sound: {
+            id: sound.id, name: sound.name, mimeType: sound.mimeType,
+            sizeBytes: sound.sizeBytes, dataUrl: sound.dataUrl
+          }
+        });
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/sounds') {
+        const body = await readLargeBody(req, 1500000);
+        const action = String(body.action || 'add');
+        if (action === 'delete') {
+          const id = String(body.id || '');
+          if (!configStore.sounds.some(item => item.id === id)) {
+            throw new Error('Sound yang akan dihapus tidak ditemukan.');
+          }
+          configStore.sounds = configStore.sounds.filter(item => item.id !== id);
+          configStore.configs = configStore.configs.map(item =>
+            item.soundId === id ? { ...item, soundId: null } : item
+          );
+          saveConfigStore();
+        } else if (action === 'add') {
+          const name = String(body.name || '').trim();
+          const mimeType = String(body.mimeType || '').toLowerCase();
+          const dataUrl = String(body.dataUrl || '');
+          if (!name || name.length > 48) throw new Error('Nama sound wajib diisi (maksimal 48 karakter).');
+          if (configStore.sounds.length >= 8) throw new Error('Maksimal 8 sound tersimpan.');
+          const match = dataUrl.match(/^data:(audio\/(?:mpeg|ogg|wav|x-wav|mp4|webm));base64,([A-Za-z0-9+/]+={0,2})$/i);
+          if (!match || match[1].toLowerCase() !== mimeType) {
+            throw new Error('Format audio tidak didukung. Gunakan MP3, OGG, WAV, M4A, atau WEBM.');
+          }
+          const audioBuffer = Buffer.from(match[2], 'base64');
+          if (!audioBuffer.length || audioBuffer.length > 1048576) {
+            throw new Error('Ukuran audio maksimal 1 MB.');
+          }
+          const sound = {
+            id: crypto.randomBytes(6).toString('hex'),
+            name,
+            mimeType,
+            sizeBytes: audioBuffer.length,
+            dataUrl
+          };
+          configStore.sounds.push(sound);
+          saveConfigStore();
+        } else {
+          throw new Error('Aksi sound tidak dikenal.');
+        }
+        json(res, 200, {
+          ok: true,
+          sounds: configStore.sounds.map(item => ({
+            id: item.id, name: item.name, mimeType: item.mimeType, sizeBytes: item.sizeBytes
+          })),
+          configs: configStore.configs,
+          activeConfigId: configStore.activeConfigId
+        });
+        return;
+      }
+
       if (req.method === 'GET' && pathname === '/api/configs') {
         json(res, 200, {
           ok: true,
@@ -667,12 +787,17 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
             throw new Error('Durasi senter harus 1 sampai 5 menit.');
           }
 
+          const soundId = String(body.soundId || '').trim();
+          if (soundId && !configStore.sounds.some(item => item.id === soundId)) {
+            throw new Error('Sound pilihan tidak ditemukan. Muat ulang Soundboard.');
+          }
           const values = {
             name,
             vibrationPulseMs,
             vibrationDurationMinutes,
             flashIntervalMs,
-            flashDurationMinutes
+            flashDurationMinutes,
+            soundId: soundId || null
           };
           const existingId = String(body.id || '');
           if (existingId) {
