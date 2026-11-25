@@ -750,6 +750,29 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
         return;
       }
 
+      if (req.method === 'POST' && pathname === '/api/soundboard') {
+        const body = await readBody(req);
+        const action = String(body.action || '');
+        if (action === 'play') {
+          const id = String(body.id || '');
+          const sound = configStore.sounds.find(item => item.id === id);
+          if (!sound) throw new Error('Sound tidak ditemukan. Muat ulang Soundboard.');
+          const result = await receiverRequest({
+            type: 'soundboard_play',
+            token: receiverToken,
+            sound: { name: sound.name, mimeType: sound.mimeType, dataUrl: sound.dataUrl }
+          }, 30000);
+          json(res, result.ok ? 200 : 502, result);
+          return;
+        }
+        if (action === 'stop') {
+          const result = await receiverRequest({ type: 'soundboard_stop', token: receiverToken }, 20000);
+          json(res, result.ok ? 200 : 502, result);
+          return;
+        }
+        throw new Error('Aksi Soundboard tidak dikenal.');
+      }
+
       if (req.method === 'GET' && pathname === '/api/configs') {
         json(res, 200, {
           ok: true,
