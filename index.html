@@ -346,6 +346,34 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 
+
+/* CONFIGURATION MANAGER */
+.config-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:16px;align-items:start}
+.config-list{display:grid;gap:10px}
+.config-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:15px;border:1px solid var(--line);border-radius:14px;background:rgba(11,18,32,.48)}
+.config-item.active{border-color:rgba(74,222,128,.58);background:linear-gradient(110deg,rgba(34,197,94,.14),rgba(27,41,66,.68));box-shadow:inset 3px 0 #4ade80}
+.config-item-main{min-width:0}
+.config-item-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px;color:#f8fafc;font-size:13px;font-weight:800;overflow-wrap:anywhere}
+.config-active-tag{display:inline-flex;align-items:center;min-height:23px;padding:3px 8px;border:1px solid rgba(74,222,128,.38);border-radius:99px;background:rgba(22,101,52,.24);color:#bbf7d0;font:600 8px/1.3 'Fira Code',monospace;letter-spacing:.06em}
+.config-details{display:flex;flex-wrap:wrap;gap:7px 15px;margin-top:8px;color:#b9c7d9;font-size:10px;line-height:1.55}
+.config-details span{overflow-wrap:anywhere}
+.config-item-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.config-item-actions .btn{min-width:92px;min-height:44px;padding:9px 11px}
+.config-editor-title{margin:0;color:#f1f5f9;font-size:13px;font-weight:800}
+.config-editor-subtitle{margin:5px 0 17px;color:#aebed3;font-size:11px;line-height:1.6}
+.config-form .field input{min-height:48px}
+.config-field-note{color:#9eafc5;font-size:10px;line-height:1.5}
+.config-state-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(11,18,32,.42)}
+.config-state-row strong{display:block;color:#e2e8f0;font-size:11px}
+.config-state-row small{display:block;margin-top:3px;color:#9eafc5;font-size:10px;line-height:1.45}
+.config-warning{margin:0 0 16px;padding:13px 15px;border:1px solid rgba(56,189,248,.28);border-radius:13px;background:rgba(8,47,73,.22);color:#c8eaff;font-size:11px;line-height:1.65}
+.config-form-message{min-height:22px;margin-top:12px;color:#b0bfd3;font-size:11px;line-height:1.6}
+.config-empty{padding:22px 17px;border:1px dashed rgba(148,163,184,.35);border-radius:13px;background:rgba(11,18,32,.36);color:#b0bfd3;font-size:12px;line-height:1.7;text-align:center}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.btn[hidden]{display:none}
+@media(max-width:900px){.config-layout{grid-template-columns:1fr}}
+@media(max-width:600px){.config-item{grid-template-columns:1fr}.config-item-actions{justify-content:flex-start}.config-item-actions .btn{flex:1 1 120px}}
+
 </style>
 </head>
 <body>
@@ -358,6 +386,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     <button data-page="device"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6.5" y="2.5" width="11" height="19" rx="2.2"/><path d="M10 18.2h4"/></svg></span> Device Center</button>
     <button data-page="apps"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="7" height="7" rx="1.2"/><rect x="13.5" y="4" width="7" height="7" rx="1.2"/><rect x="3.5" y="14" width="7" height="6" rx="1.2"/><rect x="13.5" y="14" width="7" height="6" rx="1.2"/></svg></span> App Manager</button>
     <button data-page="modules"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg></span> Control Modules</button>
+    <button data-page="configs"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="8" cy="5.5" r="1.7"/><circle cx="15.5" cy="12" r="1.7"/><circle cx="10.5" cy="18.5" r="1.7"/></svg></span> Configurations</button>
     <button data-page="logs"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 18V6M4 18h16"/><path d="m7 14 3-4 3 2 5-6"/></svg></span> Activity Logs</button>
     <button data-page="setup"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 1.7-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-2.4v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L8 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6.7v-2.4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L8 8.6l1.7-1.7.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h2.4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.7 1.7-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg></span> Pairing & Setup</button>
     <button data-page="settings"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 1.7-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-2.4v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L8 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6.7v-2.4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L8 8.6l1.7-1.7.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h2.4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.7 1.7-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg></span> Settings</button>
@@ -442,6 +471,33 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   <div class="panel"><div class="panel-head"><div class="panel-title">SAVED AUTO EFFECT CONFIG</div><span class="panel-hint">READ FROM CONTROLLER</span></div><div class="info-row"><span>Active preset</span><span id="configName">Not available</span></div><div class="info-row"><span>Auto effects</span><span id="configAuto">Unknown</span></div><div class="btn-row"><button class="btn" id="startEffectsBtn" disabled>START SAVED EFFECTS</button><button class="btn danger" id="stopEffectsBtn" disabled>STOP ALL EFFECTS</button></div><div class="form-status" id="moduleMessage"></div></div>
 </section>
 
+<section class="page" id="page-configs">
+  <div class="page-intro"><div class="eyebrow">PRESET WORKSPACE</div><h1>CONFIGURATIONS</h1><div class="subtitle">Kelola preset getar dan senter yang tersimpan di Controller Termux. Pilih satu preset agar digunakan oleh fitur yang sudah tersedia.</div></div>
+  <div class="config-warning"><strong>CATATAN:</strong> Menyimpan atau memilih preset tidak langsung menyalakan getar maupun senter. Efek hanya berjalan saat perintah yang relevan dijalankan dan pemilik perangkat telah menyetujui sesi pairing.</div>
+  <div class="config-layout">
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">SAVED CONFIGURATIONS</div><div class="panel-hint" id="configCount">Belum dimuat</div></div><button class="btn secondary" id="configRefreshBtn" type="button" disabled>REFRESH</button></div>
+      <div class="config-list" id="configList" aria-live="polite"><div class="config-empty">Hubungkan sesi dashboard untuk memuat konfigurasi yang tersimpan di Controller.</div></div>
+      <div class="config-state-row"><div><strong>Auto Effects</strong><small>Izinkan preset aktif dipakai otomatis saat sesi Lock dimulai.</small></div><label class="switch-row" style="margin:0"><span class="sr-only">Aktifkan Auto Effects</span><input id="configAutoEffects" type="checkbox" disabled><i class="switch-ui"></i></label></div>
+      <div class="form-status" id="configListMessage" aria-live="polite">Preset dikelola pada Controller yang sedang terhubung.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">CONFIGURATION EDITOR</div><span class="panel-hint" id="configEditorMode">NEW PRESET</span></div>
+      <h2 class="config-editor-title" id="configEditorTitle">Buat konfigurasi baru</h2>
+      <p class="config-editor-subtitle">Nilai disimpan di file configurations.json pada folder Controller Termux.</p>
+      <form id="configForm" class="form-grid config-form">
+        <div class="field full"><label for="configNameInput">NAMA KONFIGURASI</label><input id="configNameInput" type="text" maxlength="32" placeholder="Contoh: Default Aman" autocomplete="off" required disabled><div class="config-field-note">Maksimal 32 karakter.</div></div>
+        <div class="field"><label for="configVibrationPulse">PULSA GETAR (100–1000 MS)</label><input id="configVibrationPulse" type="number" min="100" max="1000" step="1" value="800" inputmode="numeric" required disabled></div>
+        <div class="field"><label for="configVibrationDuration">DURASI GETAR (1–5 MENIT)</label><input id="configVibrationDuration" type="number" min="1" max="5" step="1" value="5" inputmode="numeric" required disabled></div>
+        <div class="field"><label for="configFlashInterval">INTERVAL SENTER (800–20000 MS)</label><input id="configFlashInterval" type="number" min="800" max="20000" step="100" value="1000" inputmode="numeric" required disabled></div>
+        <div class="field"><label for="configFlashDuration">DURASI SENTER (1–5 MENIT)</label><input id="configFlashDuration" type="number" min="1" max="5" step="1" value="5" inputmode="numeric" required disabled></div>
+        <div class="field full"><div class="btn-row"><button class="btn" id="configSaveBtn" type="submit" disabled>SAVE CONFIG</button><button class="btn secondary" id="configNewBtn" type="button" disabled>NEW CONFIG</button><button class="btn secondary" id="configCancelBtn" type="button" hidden disabled>CANCEL EDIT</button></div></div>
+      </form>
+      <div class="config-form-message" id="configFormMessage" aria-live="polite">Hubungkan dashboard untuk menambah, mengedit, atau memilih preset.</div>
+    </div>
+  </div>
+</section>
+
 <section class="page" id="page-logs">
   <div class="page-intro"><div class="eyebrow">AUDIT TRAIL</div><h1>ACTIVITY LOGS</h1><div class="subtitle">Riwayat aksi dari tab dashboard ini.</div></div>
   <div class="panel"><div class="panel-head"><div class="panel-title">RECENT ACTIVITY</div><button class="btn secondary" id="clearLogsBtn">CLEAR LOGS</button></div><div class="log-list" id="logList"><div class="empty">Belum ada aktivitas dashboard.</div></div></div>
@@ -483,7 +539,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   <div class="form-status" id="settingsMessage" aria-live="polite">Perubahan disimpan otomatis. Pengaturan ini hanya memengaruhi tampilan lokal dashboard.</div>
 </section>
 
-<div class="footer"><span>RANGGACRYZHACK · DUAL CONTROL INTERFACE</span><span>UI BUILD 1.1 · AUTHORIZED SESSION</span></div>
+<div class="footer"><span>RANGGACRYZHACK · DUAL CONTROL INTERFACE</span><span>UI BUILD 1.2 · CONFIGURATION MANAGER</span></div>
 </div>
 </main>
 </div>
@@ -508,6 +564,10 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   }
   let pollHandle=null;
   let logs=[];
+  let savedConfigs=[];
+  let activeConfigId=null;
+  let autoEffectsEnabled=true;
+  let editingConfigId=null;
 
   function showPage(name){
     pages.forEach(page=>page.classList.toggle('active',page.id==='page-'+name));
@@ -555,6 +615,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('loadAppsBtn').disabled=!value;$('startVibrationBtn').disabled=!value;$('stopVibrationBtn').disabled=!value;
     $('flashOnBtn').disabled=!value;$('flashOffBtn').disabled=!value;$('startEffectsBtn').disabled=!value;$('stopEffectsBtn').disabled=!value;
     $('connectBtn').disabled=value;$('disconnectBtn').disabled=!value;
+    ['configNameInput','configVibrationPulse','configVibrationDuration','configFlashInterval','configFlashDuration','configSaveBtn','configNewBtn','configCancelBtn','configAutoEffects','configRefreshBtn'].forEach(id=>{if($(id))$(id).disabled=!value;});
     if(message)$('connectStatus').textContent=message;
     if(!value){
       $('statLock').textContent='UNKNOWN';$('lockStatusText').textContent='Unknown';
@@ -594,6 +655,197 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     }
   }
 
+  function updateConfigSummary(){
+    const active=savedConfigs.find(item=>item.id===activeConfigId);
+    const activeName=active?active.name:'No active preset';
+    $('configName').textContent=activeName;
+    $('activeConfig').textContent=activeName;
+    $('configAuto').textContent=autoEffectsEnabled?'ON':'OFF';
+    $('autoEffects').textContent=autoEffectsEnabled?'ON':'OFF';
+  }
+
+  function renderConfigList(){
+    const list=$('configList');
+    list.replaceChildren();
+    $('configCount').textContent=savedConfigs.length+' PRESET'+(savedConfigs.length===1?'':'S');
+    if(!savedConfigs.length){
+      const empty=document.createElement('div');
+      empty.className='config-empty';
+      empty.textContent='Belum ada konfigurasi. Isi editor di samping, lalu simpan preset pertama.';
+      list.appendChild(empty);
+      updateConfigSummary();
+      return;
+    }
+    savedConfigs.forEach(item=>{
+      const active=item.id===activeConfigId;
+      const card=document.createElement('article');
+      card.className='config-item'+(active?' active':'');
+      const main=document.createElement('div');
+      main.className='config-item-main';
+      const title=document.createElement('div');
+      title.className='config-item-title';
+      const name=document.createElement('span');
+      name.textContent=item.name;
+      title.appendChild(name);
+      if(active){
+        const tag=document.createElement('span');
+        tag.className='config-active-tag';
+        tag.textContent='CONFIG AKTIF';
+        title.appendChild(tag);
+      }
+      const details=document.createElement('div');
+      details.className='config-details';
+      const vib=document.createElement('span');
+      vib.textContent='Getar · '+item.vibrationPulseMs+' ms / '+item.vibrationDurationMinutes+' menit';
+      const flash=document.createElement('span');
+      flash.textContent='Senter · '+item.flashIntervalMs+' ms / '+item.flashDurationMinutes+' menit';
+      details.append(vib,flash);
+      main.append(title,details);
+      const actions=document.createElement('div');
+      actions.className='config-item-actions';
+      const edit=document.createElement('button');
+      edit.type='button';edit.className='btn secondary';edit.textContent='EDIT';edit.disabled=!connected;
+      edit.addEventListener('click',()=>editConfig(item));
+      const select=document.createElement('button');
+      select.type='button';select.className='btn'+(active?' secondary':'');select.textContent=active?'TERPILIH':'PILIH';select.disabled=!connected||active;
+      select.addEventListener('click',()=>selectConfig(item.id));
+      actions.append(edit,select);
+      card.append(main,actions);
+      list.appendChild(card);
+    });
+    updateConfigSummary();
+  }
+
+  function syncConfigState(data){
+    savedConfigs=Array.isArray(data.configs)?data.configs:[];
+    activeConfigId=data.activeConfigId||null;
+    autoEffectsEnabled=data.autoEffects!==false;
+    $('configAutoEffects').checked=autoEffectsEnabled;
+    renderConfigList();
+  }
+
+  async function loadConfigs(){
+    const data=await api('/api/configs',{method:'GET'});
+    syncConfigState(data);
+    $('configListMessage').textContent='Konfigurasi berhasil dimuat dari Controller Termux.';
+  }
+
+  function resetConfigEditor(){
+    editingConfigId=null;
+    $('configNameInput').value='';
+    $('configVibrationPulse').value='800';
+    $('configVibrationDuration').value='5';
+    $('configFlashInterval').value='1000';
+    $('configFlashDuration').value='5';
+    $('configEditorMode').textContent='NEW PRESET';
+    $('configEditorTitle').textContent='Buat konfigurasi baru';
+    $('configSaveBtn').textContent='SAVE CONFIG';
+    $('configCancelBtn').hidden=true;
+    $('configFormMessage').textContent='Isi nama dan parameter, lalu simpan konfigurasi.';
+  }
+
+  function editConfig(item){
+    editingConfigId=item.id;
+    $('configNameInput').value=item.name;
+    $('configVibrationPulse').value=item.vibrationPulseMs;
+    $('configVibrationDuration').value=item.vibrationDurationMinutes;
+    $('configFlashInterval').value=item.flashIntervalMs;
+    $('configFlashDuration').value=item.flashDurationMinutes;
+    $('configEditorMode').textContent='EDITING PRESET';
+    $('configEditorTitle').textContent='Edit: '+item.name;
+    $('configSaveBtn').textContent='SAVE CHANGES';
+    $('configCancelBtn').hidden=false;
+    $('configFormMessage').textContent='Perubahan akan mengganti nilai preset yang dipilih.';
+    $('configNameInput').focus();
+  }
+
+  async function selectConfig(id){
+    if(!connected)return;
+    const item=savedConfigs.find(config=>config.id===id);
+    if(!item)return;
+    try{
+      $('configListMessage').textContent='Menyimpan pilihan konfigurasi aktif...';
+      const data=await api('/api/configs',{method:'POST',body:JSON.stringify({action:'select',id})});
+      syncConfigState(data);
+      $('configListMessage').textContent='Config aktif sekarang: '+item.name+'. Efek belum dijalankan.';
+      addLog('Selected configuration: '+item.name,true);
+    }catch(error){
+      $('configListMessage').textContent='Gagal memilih konfigurasi: '+error.message;
+      addLog('Configuration selection failed: '+error.message,false);
+    }
+  }
+
+  $('configForm').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!connected)return;
+    const name=$('configNameInput').value.trim();
+    const vibrationPulseMs=Number($('configVibrationPulse').value);
+    const vibrationDurationMinutes=Number($('configVibrationDuration').value);
+    const flashIntervalMs=Number($('configFlashInterval').value);
+    const flashDurationMinutes=Number($('configFlashDuration').value);
+    if(!name||name.length>32){
+      $('configFormMessage').textContent='Nama wajib diisi dan maksimal 32 karakter.';
+      $('configNameInput').focus();return;
+    }
+    if(!Number.isInteger(vibrationPulseMs)||vibrationPulseMs<100||vibrationPulseMs>1000){
+      $('configFormMessage').textContent='Pulsa getar harus bilangan bulat 100–1000 ms.';
+      $('configVibrationPulse').focus();return;
+    }
+    if(!Number.isInteger(vibrationDurationMinutes)||vibrationDurationMinutes<1||vibrationDurationMinutes>5){
+      $('configFormMessage').textContent='Durasi getar harus 1–5 menit.';
+      $('configVibrationDuration').focus();return;
+    }
+    if(!Number.isInteger(flashIntervalMs)||flashIntervalMs<800||flashIntervalMs>20000){
+      $('configFormMessage').textContent='Interval senter harus 800–20000 ms.';
+      $('configFlashInterval').focus();return;
+    }
+    if(!Number.isInteger(flashDurationMinutes)||flashDurationMinutes<1||flashDurationMinutes>5){
+      $('configFormMessage').textContent='Durasi senter harus 1–5 menit.';
+      $('configFlashDuration').focus();return;
+    }
+    const wasEditing=!!editingConfigId;
+    const payload={action:'save',name,vibrationPulseMs,vibrationDurationMinutes,flashIntervalMs,flashDurationMinutes};
+    if(editingConfigId)payload.id=editingConfigId;
+    $('configSaveBtn').disabled=true;
+    $('configSaveBtn').textContent='SAVING...';
+    $('configFormMessage').textContent='Menyimpan preset pada Controller Termux...';
+    try{
+      const data=await api('/api/configs',{method:'POST',body:JSON.stringify(payload)});
+      syncConfigState(data);
+      addLog((wasEditing?'Updated':'Created')+' configuration: '+name,true);
+      resetConfigEditor();
+      $('configFormMessage').textContent=wasEditing?'Perubahan konfigurasi berhasil disimpan.':'Konfigurasi baru berhasil ditambahkan.';
+    }catch(error){
+      $('configFormMessage').textContent='Gagal menyimpan: '+error.message;
+      addLog('Configuration save failed: '+error.message,false);
+    }finally{
+      $('configSaveBtn').disabled=!connected;
+      $('configSaveBtn').textContent=editingConfigId?'SAVE CHANGES':'SAVE CONFIG';
+    }
+  });
+
+  $('configNewBtn').addEventListener('click',resetConfigEditor);
+  $('configCancelBtn').addEventListener('click',resetConfigEditor);
+  $('configRefreshBtn').addEventListener('click',async()=>{
+    if(!connected)return;
+    $('configListMessage').textContent='Memuat ulang daftar konfigurasi...';
+    try{await loadConfigs();}catch(error){$('configListMessage').textContent='Gagal memuat konfigurasi: '+error.message;}
+  });
+  $('configAutoEffects').addEventListener('change',async()=>{
+    if(!connected)return;
+    const requested=$('configAutoEffects').checked;
+    $('configAutoEffects').disabled=true;
+    try{
+      const data=await api('/api/configs',{method:'POST',body:JSON.stringify({action:'auto-effects',enabled:requested})});
+      syncConfigState(data);
+      $('configListMessage').textContent='Auto Effects '+(autoEffectsEnabled?'diaktifkan':'dinonaktifkan')+'.';
+      addLog('Auto Effects '+(autoEffectsEnabled?'enabled':'disabled'),true);
+    }catch(error){
+      $('configAutoEffects').checked=autoEffectsEnabled;
+      $('configListMessage').textContent='Gagal mengubah Auto Effects: '+error.message;
+    }finally{$('configAutoEffects').disabled=!connected;}
+  });
+
   async function runCommand(action,extra){
     if(!connected)throw new Error('Hubungkan dashboard terlebih dahulu.');
     const result=await api('/api/command',{method:'POST',body:JSON.stringify(Object.assign({action},extra||{}))});
@@ -629,6 +881,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
       setConnected(true,'Terhubung ke Controller Termux. Sesi browser aktif selama Controller dan tunnel berjalan.');
       addLog('Dashboard connected to authorized Controller',true);
       await refreshStatus();
+      await loadConfigs();
       if(pollHandle)clearInterval(pollHandle);
       pollHandle=setInterval(refreshStatus,5000);
     }catch(error){
