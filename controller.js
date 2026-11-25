@@ -630,6 +630,87 @@ function startDashboardBridge(channel, receiverToken, pairingPin) {
         return;
       }
 
+      if (req.method === 'GET' && pathname === '/api/configs') {
+        json(res, 200, {
+          ok: true,
+          configs: configStore.configs,
+          activeConfigId: configStore.activeConfigId,
+          autoEffects: configStore.autoEffects
+        });
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === '/api/configs') {
+        const body = await readBody(req);
+        const action = String(body.action || '');
+
+        if (action === 'save') {
+          const name = String(body.name || '').trim();
+          const vibrationPulseMs = Number(body.vibrationPulseMs);
+          const vibrationDurationMinutes = Number(body.vibrationDurationMinutes);
+          const flashIntervalMs = Number(body.flashIntervalMs);
+          const flashDurationMinutes = Number(body.flashDurationMinutes);
+
+          if (!name || name.length > 32) {
+            throw new Error('Nama konfigurasi harus 1 sampai 32 karakter.');
+          }
+          if (!Number.isInteger(vibrationPulseMs) || vibrationPulseMs < 100 || vibrationPulseMs > 1000) {
+            throw new Error('Pulsa getar harus 100 sampai 1000 ms.');
+          }
+          if (!Number.isInteger(vibrationDurationMinutes) || vibrationDurationMinutes < 1 || vibrationDurationMinutes > 5) {
+            throw new Error('Durasi getar harus 1 sampai 5 menit.');
+          }
+          if (!Number.isInteger(flashIntervalMs) || flashIntervalMs < 800 || flashIntervalMs > 20000) {
+            throw new Error('Interval senter harus 800 sampai 20000 ms.');
+          }
+          if (!Number.isInteger(flashDurationMinutes) || flashDurationMinutes < 1 || flashDurationMinutes > 5) {
+            throw new Error('Durasi senter harus 1 sampai 5 menit.');
+          }
+
+          const values = {
+            name,
+            vibrationPulseMs,
+            vibrationDurationMinutes,
+            flashIntervalMs,
+            flashDurationMinutes
+          };
+          const existingId = String(body.id || '');
+          if (existingId) {
+            const index = configStore.configs.findIndex(item => item.id === existingId);
+            if (index < 0) throw new Error('Konfigurasi yang akan diedit tidak ditemukan.');
+            configStore.configs[index] = { id: existingId, ...values };
+          } else {
+            const id = Date.now().toString(36) + '-' + crypto.randomBytes(4).toString('hex');
+            configStore.configs.push({ id, ...values });
+            if (!configStore.activeConfigId) configStore.activeConfigId = id;
+          }
+          saveConfigStore();
+        } else if (action === 'select') {
+          const id = String(body.id || '');
+          if (!configStore.configs.some(item => item.id === id)) {
+            throw new Error('Konfigurasi yang dipilih tidak ditemukan.');
+          }
+          configStore.activeConfigId = id;
+          saveConfigStore();
+        } else if (action === 'auto-effects') {
+          if (typeof body.enabled !== 'boolean') {
+            throw new Error('Status Auto Effects harus berupa ON atau OFF.');
+          }
+          configStore.autoEffects = body.enabled;
+          saveConfigStore();
+        } else {
+          throw new Error('Aksi konfigurasi tidak dikenal.');
+        }
+
+        json(res, 200, {
+          ok: true,
+          configs: configStore.configs,
+          activeConfigId: configStore.activeConfigId,
+          autoEffects: configStore.autoEffects
+        });
+        return;
+      }
+
       if (req.method === 'GET' && pathname === '/api/apps') {
         const result = await channel.request({ type: 'list_apps', token: receiverToken }, 30000);
         if (result.type !== 'apps') {
