@@ -395,6 +395,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     <button data-page="apps"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="7" height="7" rx="1.2"/><rect x="13.5" y="4" width="7" height="7" rx="1.2"/><rect x="3.5" y="14" width="7" height="6" rx="1.2"/><rect x="13.5" y="14" width="7" height="6" rx="1.2"/></svg></span> App Manager</button>
     <button data-page="modules"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg></span> Control Modules</button>
     <button data-page="configs"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5h16M4 12h16M4 18.5h16"/><circle cx="8" cy="5.5" r="1.7"/><circle cx="15.5" cy="12" r="1.7"/><circle cx="10.5" cy="18.5" r="1.7"/></svg></span> Configurations</button>
+    <button data-page="soundboard"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/></svg></span> Soundboard</button>
     <button data-page="logs"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 18V6M4 18h16"/><path d="m7 14 3-4 3 2 5-6"/></svg></span> Activity Logs</button>
     <button data-page="setup"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 1.7-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-2.4v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L8 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6.7v-2.4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L8 8.6l1.7-1.7.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h2.4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.7 1.7-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg></span> Pairing & Setup</button>
     <button data-page="settings"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 1.7-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-2.4v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L8 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H6.7v-2.4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L8 8.6l1.7-1.7.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h2.4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.7 1.7-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg></span> Settings</button>
@@ -479,10 +480,11 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   <div class="panel"><div class="panel-head"><div class="panel-title">SAVED AUTO EFFECT CONFIG</div><span class="panel-hint">READ FROM CONTROLLER</span></div><div class="info-row"><span>Active preset</span><span id="configName">Not available</span></div><div class="info-row"><span>Auto effects</span><span id="configAuto">Unknown</span></div><div class="btn-row"><button class="btn" id="startEffectsBtn" disabled>START SAVED EFFECTS</button><button class="btn danger" id="stopEffectsBtn" disabled>STOP ALL EFFECTS</button></div><div class="form-status" id="moduleMessage"></div></div>
 </section>
 
-<section class="page" id="page-configs">
-  <div class="page-intro"><div class="eyebrow">PRESET WORKSPACE</div><h1>CONFIGURATIONS</h1><div class="subtitle">Kelola preset getar dan senter yang tersimpan di Controller Termux. Pilih satu preset agar digunakan oleh fitur yang sudah tersedia.</div></div>
-  <div class="config-warning"><strong>CATATAN:</strong> Preset hanya berjalan saat Lock dimulai. Suara di halaman penerima memerlukan aktivasi pemilik perangkat dan berhenti saat PIN benar atau sesi Lock berakhir.</div>
-  <div class="panel sound-library-panel">
+
+<section class="page" id="page-soundboard">
+  <div class="page-intro"><div class="eyebrow">REMOTE AUDIO CONTROLS</div><h1>SOUNDBOARD</h1><div class="subtitle">Tambahkan audio dengan nama sendiri, lalu putar langsung pada HP Target yang sedang terhubung.</div></div>
+  <div class="config-warning"><strong>PLAYBACK TARGET:</strong> Tombol PLAY mengirim audio ke HP Target satu kali. Gunakan STOP AUDIO untuk menghentikan pemutaran kapan saja. Pemilik Target juga tetap dapat menghentikan pemutar dari Termux.</div>
+    <div class="panel sound-library-panel">
     <div class="panel-head"><div><div class="panel-title">SOUND LIBRARY</div><div class="panel-hint">MAX 8 FILES · 1 MB EACH</div></div><span class="panel-hint" id="soundCount">0 SOUNDS</span></div>
     <form id="soundUploadForm" class="sound-upload-grid">
       <div class="field"><label for="soundNameInput">NAMA SOUND</label><input id="soundNameInput" type="text" maxlength="48" placeholder="Contoh: Notifikasi" required disabled></div>
@@ -492,6 +494,15 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     <div class="soundboard" id="soundList" aria-live="polite"><div class="config-empty">Hubungkan Controller untuk menambahkan suara.</div></div>
     <div class="form-status" id="soundMessage" aria-live="polite">Audio disimpan di Controller dan dikirim ke Receiver ketika preset dipakai.</div>
   </div>
+  <div class="panel" style="margin-top:14px">
+    <div class="panel-head"><div><div class="panel-title">TARGET PLAYBACK</div><div class="panel-hint">REMOTE MEDIA PLAYER</div></div><span class="panel-hint" id="soundPlaybackStatus">NOT PLAYING</span></div>
+    <div class="btn-row"><button class="btn danger" id="soundStopBtn" type="button" disabled>STOP AUDIO ON TARGET</button></div>
+  </div>
+</section>
+
+<section class="page" id="page-configs">
+  <div class="page-intro"><div class="eyebrow">PRESET WORKSPACE</div><h1>CONFIGURATIONS</h1><div class="subtitle">Kelola preset getar dan senter. Sound yang dibuat pada tab Soundboard tetap tersedia untuk dipilih sebagai suara preset Lock.</div></div>
+  <div class="config-warning"><strong>CATATAN:</strong> Preset berjalan saat Lock dimulai. Pilih suara yang sudah disimpan melalui tab Soundboard bila diperlukan.</div>
   <div class="config-layout">
     <div class="panel">
       <div class="panel-head"><div><div class="panel-title">SAVED CONFIGURATIONS</div><div class="panel-hint" id="configCount">Belum dimuat</div></div><button class="btn secondary" id="configRefreshBtn" type="button" disabled>REFRESH</button></div>
@@ -585,8 +596,7 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
   let logs=[];
   let savedConfigs=[];
   let soundLibrary=[];
-  let previewAudio=null;
-  let previewSoundId=null;
+  let playingSoundId=null;
   let activeConfigId=null;
   let autoEffectsEnabled=true;
   let editingConfigId=null;
@@ -637,8 +647,8 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     $('loadAppsBtn').disabled=!value;$('startVibrationBtn').disabled=!value;$('stopVibrationBtn').disabled=!value;
     $('flashOnBtn').disabled=!value;$('flashOffBtn').disabled=!value;$('startEffectsBtn').disabled=!value;$('stopEffectsBtn').disabled=!value;
     $('connectBtn').disabled=value;$('disconnectBtn').disabled=!value;
-    ['configNameInput','configVibrationPulse','configVibrationDuration','configFlashInterval','configFlashDuration','configSoundSelect','configSaveBtn','configNewBtn','configCancelBtn','configAutoEffects','configRefreshBtn','soundNameInput','soundFileInput','soundAddBtn'].forEach(id=>{if($(id))$(id).disabled=!value;});
-    if(!value&&previewAudio){previewAudio.pause();previewAudio=null;previewSoundId=null;}
+    ['configNameInput','configVibrationPulse','configVibrationDuration','configFlashInterval','configFlashDuration','configSoundSelect','configSaveBtn','configNewBtn','configCancelBtn','configAutoEffects','configRefreshBtn','soundNameInput','soundFileInput','soundAddBtn','soundStopBtn'].forEach(id=>{if($(id))$(id).disabled=!value;});
+    if(!value)playingSoundId=null;
     if($('configList'))renderConfigList();
     if($('soundList'))renderSoundboard();
     if(message)$('connectStatus').textContent=message;
@@ -795,40 +805,40 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
       const meta=document.createElement('div');meta.className='sound-row-meta';
       meta.textContent=sound.mimeType.toUpperCase()+' · '+(Math.max(1,Math.round(sound.sizeBytes/1024)))+' KB';
       info.append(name,meta);
+
       const play=document.createElement('button');
       play.type='button';play.className='btn secondary';
-      play.textContent=previewSoundId===sound.id?'STOP':'PLAY';
-      play.disabled=!connected;
+      play.textContent=playingSoundId===sound.id?'PLAYING':'PLAY';
+      play.disabled=!connected||playingSoundId===sound.id;
       play.addEventListener('click',async()=>{
-        if(previewSoundId===sound.id&&previewAudio){
-          previewAudio.pause();previewAudio=null;previewSoundId=null;
-          renderSoundboard();$('soundMessage').textContent='Preview dihentikan.';
-          return;
-        }
+        if(!connected)return;
+        if(!confirm('Putar "'+sound.name+'" pada HP Target yang terhubung?'))return;
+        play.disabled=true;
+        $('soundMessage').textContent='Mengirim audio ke HP Target...';
         try{
-          if(previewAudio){previewAudio.pause();previewAudio=null;}
-          const data=await api('/api/sounds/'+sound.id,{method:'GET'});
-          const thisPreview=new Audio(data.sound.dataUrl);
-          previewAudio=thisPreview;
-          previewSoundId=sound.id;
-          thisPreview.addEventListener('ended',()=>{
-            if(previewAudio===thisPreview){previewAudio=null;previewSoundId=null;renderSoundboard();}
-          });
-          await thisPreview.play();
-          renderSoundboard();
-          $('soundMessage').textContent='Memutar preview: '+sound.name;
+          const result=await api('/api/soundboard',{method:'POST',body:JSON.stringify({action:'play',id:sound.id})});
+          playingSoundId=sound.id;
+          $('soundPlaybackStatus').textContent='PLAYING: '+sound.name;
+          $('soundMessage').textContent=result.message||'Audio dikirim ke HP Target.';
+          addLog('Soundboard play on Target: '+sound.name,true);
         }catch(error){
-          previewAudio=null;previewSoundId=null;renderSoundboard();
-          $('soundMessage').textContent='Preview gagal: '+error.message;
-        }
+          $('soundPlaybackStatus').textContent='PLAY FAILED';
+          $('soundMessage').textContent='Gagal memutar di HP Target: '+error.message;
+          addLog('Soundboard playback failed: '+error.message,false);
+        }finally{renderSoundboard();}
       });
+
       const remove=document.createElement('button');
       remove.type='button';remove.className='btn danger';remove.textContent='DELETE';
       remove.disabled=!connected;
       remove.addEventListener('click',async()=>{
         if(!confirm('Hapus sound "'+sound.name+'" dari pustaka? Config yang memakainya akan diubah menjadi Tanpa suara.'))return;
         try{
-          if(previewAudio){previewAudio.pause();previewAudio=null;previewSoundId=null;}
+          if(playingSoundId===sound.id){
+            await api('/api/soundboard',{method:'POST',body:JSON.stringify({action:'stop'})});
+            playingSoundId=null;
+            $('soundPlaybackStatus').textContent='STOPPED';
+          }
           await api('/api/sounds',{method:'POST',body:JSON.stringify({action:'delete',id:sound.id})});
           await loadConfigs();await loadSounds();
           $('soundMessage').textContent='Sound dihapus.';
@@ -980,12 +990,31 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
       await api('/api/sounds',{method:'POST',body:JSON.stringify({action:'add',name,mimeType,dataUrl})});
       $('soundNameInput').value='';$('soundFileInput').value='';
       await loadSounds();
-      $('soundMessage').textContent='Sound "'+name+'" berhasil ditambahkan. Pilih pada editor konfigurasi.';
+      $('soundMessage').textContent='Sound "'+name+'" berhasil ditambahkan. Tekan PLAY untuk memutarnya di HP Target.';
       addLog('Added sound: '+name,true);
     }catch(error){
       $('soundMessage').textContent='Gagal menambahkan sound: '+error.message;
       addLog('Sound upload failed: '+error.message,false);
     }finally{$('soundAddBtn').disabled=!connected;}
+  });
+
+  $('soundStopBtn').addEventListener('click',async()=>{
+    if(!connected)return;
+    $('soundStopBtn').disabled=true;
+    $('soundMessage').textContent='Menghentikan audio pada HP Target...';
+    try{
+      const result=await api('/api/soundboard',{method:'POST',body:JSON.stringify({action:'stop'})});
+      playingSoundId=null;
+      $('soundPlaybackStatus').textContent='STOPPED';
+      $('soundMessage').textContent=result.message||'Audio dihentikan pada HP Target.';
+      addLog('Soundboard playback stopped on Target',true);
+    }catch(error){
+      $('soundMessage').textContent='Gagal menghentikan audio: '+error.message;
+      addLog('Soundboard stop failed: '+error.message,false);
+    }finally{
+      $('soundStopBtn').disabled=!connected;
+      renderSoundboard();
+    }
   });
 
   $('configAutoEffects').addEventListener('change',async()=>{
@@ -1049,7 +1078,12 @@ body.high-contrast .subtitle,body.high-contrast .setting-heading p,body.high-con
     }
   });
 
-  $('disconnectBtn').addEventListener('click',()=>disconnect('Dashboard terputus. Sesi Termux tetap berjalan.'));
+  $('disconnectBtn').addEventListener('click',async()=>{
+    if(connected){
+      try{await api('/api/soundboard',{method:'POST',body:JSON.stringify({action:'stop'})});}catch(_){}
+    }
+    disconnect('Dashboard terputus. Sesi Termux tetap berjalan.');
+  });
   $('refreshStatusBtn').addEventListener('click',refreshStatus);
   $('unlockBtn').addEventListener('click',async()=>{
     if(!confirm('Kirim perintah UNLOCK ke HP Target?'))return;
